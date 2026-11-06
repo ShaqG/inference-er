@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用三个调度开关，在 60 秒内救回一个推理服务。">
+  <title>推理急诊室 | INFERENCE ER</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="sim.js" defer></script>
+  <script src="game.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="shell top-inner"><span class="brand"><b>＋</b> INFERENCE ER</span><span class="offline"><i></i> 离线模拟 · CASE 01</span></div>
+</header>
+<main class="shell">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span></span> CASE 01 / 长请求突袭</p>
+      <h1>推理<span>急诊室</span><b>+</b></h1>
+      <p>长 Prompt 正在涌入，短聊天开始超时。<br>你有 60 秒接管服务，看能救回多少请求。</p>
+      <div class="actions"><button id="start" class="primary">▶ &nbsp; 接管服务</button><button id="reset" class="secondary">↻ &nbsp; 重开同一局</button></div>
+    </div>
+    <div class="clock"><div class="clock-label">剩余时间 <span>LIVE TIMER</span></div><strong id="clock">01:00</strong><div class="progress"><div id="progress"></div></div><p id="phase">待命 · 开始后可实时调整策略</p></div>
+  </section>
+  <div class="layout">
+    <section class="panel monitor" aria-labelledby="monitor-title">
+      <div class="section-head"><div><p class="eyebrow">01 / TELEMETRY</p><h2 id="monitor-title">服务监控</h2></div><span class="chip" id="state">待命</span></div>
+      <div class="metrics">
+        <div><span>已完成</span><strong id="done">0</strong></div>
+        <div><span>已超时</span><strong id="timeout" class="danger">0</strong></div>
+        <div><span>首 Token P95</span><strong id="p95">—</strong></div>
+        <div><span>输出 token/s</span><strong id="rate">0.0</strong></div>
+      </div>
+      <div class="chart-head"><span>积压请求</span><span id="pending">0 活跃 · 0 拒绝</span></div>
+      <svg id="chart" viewBox="0 0 600 155" preserveAspectRatio="none" role="img" aria-label="最近 60 秒活跃请求数">
+        <path class="grid" d="M0 15H600 M0 53H600 M0 91H600 M0 129H600 M0 15V129 M150 15V129 M300 15V129 M450 15V129 M599 15V129"/>
+        <path id="area"/><polyline id="line"/>
+      </svg>
+      <div class="axis"><span>0s</span><span>15s</span><span>30s</span><span>45s</span><span>60s</span></div>
+      <div class="chart-head flow-title"><span>在途请求</span><span>最近 12 条活跃请求</span></div>
+      <div id="queue" class="queue">接管后在这里查看请求处于 Prefill 还是 Decode。</div>
+    </section>
+    <aside class="panel controls" aria-labelledby="controls-title">
+      <div class="section-head"><div><p class="eyebrow">02 / INTERVENTION</p><h2 id="controls-title">调度台</h2></div><span class="chip">实时生效</span></div>
+      <div class="control"><div class="control-title">Decode 批大小</div><p>大批次提高每秒算力，也允许更多请求同时生成。</p>
+        <fieldset><legend class="sr">Decode 批大小</legend><label><input type="radio" name="batch" value="2"><span>2</span></label><label><input type="radio" name="batch" value="4" checked><span>4</span></label><label><input type="radio" name="batch" value="8"><span>8</span></label></fieldset>
+      </div>
+      <label class="control switch"><div><div class="control-title">短请求优先</div><p>短聊天在两个阶段优先调度，长请求可能等得更久。</p></div><input id="reserve" type="checkbox"></label>
+      <label class="control switch"><div><div class="control-title">限制长请求</div><p>已有 2 个长请求在途时，拒绝新的长请求。</p></div><input id="limit" type="checkbox"></label>
+      <div class="hint"><b>值班提示</b><p>第 8 秒起长 Prompt 集中到达。盯住积压和超时，再决定是否牺牲部分长请求。</p></div>
+    </aside>
+  </div>
+  <section id="report" class="panel report" hidden aria-labelledby="report-title">
+    <p class="eyebrow">03 / DEBRIEF</p><h2 id="report-title" tabindex="-1">本轮复盘</h2>
+    <p id="report-summary"></p>
+    <table><thead><tr><th scope="col">指标</th><th scope="col">本轮</th><th scope="col">默认策略</th><th scope="col">变化</th></tr></thead><tbody id="results"></tbody></table>
+    <p class="fine">默认策略在同一批请求上使用批大小 4。未完成和主动拒绝单独计数。首 Token P95 仅统计已产生首个 token 的请求。</p>
+  </section>
+  <footer><span>INFERENCE ER / 训练台</span><span>合成请求与简化算力模型 · 时间与吞吐为模拟值</span></footer>
+</main>
+</body>
+</html>
