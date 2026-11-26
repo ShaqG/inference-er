@@ -21,19 +21,22 @@ button:disabled { cursor: default; opacity: .6; }
 .shell { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
 .top { border-bottom: 1px solid var(--line); }
 .top-inner { min-height: 59px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.brand, .offline, .eyebrow, .clock-label span, .axis, .chip, footer {
+.brand, .eyebrow, .axis, .chip, footer {
   font: 700 11px/1.5 ui-monospace, Consolas, monospace;
   letter-spacing: .10em;
 }
 .brand { font-size: 14px; }
 .brand b { color: var(--green); font-size: 19px; }
-.offline, .eyebrow, .axis, footer { color: var(--muted); }
-.offline i, .eyebrow span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 5px; }
+.eyebrow, .axis, footer { color: var(--muted); }
+.languages { display: flex; gap: 4px; }
+.languages button, .case-tools button { color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 5px 8px; }
+.languages [aria-pressed="true"], .languages button:hover, .case-tools button:hover { color: var(--green); border-color: var(--line); }
 .hero { display: grid; grid-template-columns: 1fr minmax(230px, 325px); align-items: center; gap: 30px; padding: 38px 0 30px; }
 .eyebrow { margin: 0 0 7px; }
 h1, h2, p { margin-top: 0; }
 h1 { margin-bottom: 12px; font-size: clamp(40px, 7vw, 75px); line-height: 1.04; letter-spacing: -.08em; }
 h1 span, h1 b { color: var(--green); }
+h1 .title-lead { color: var(--ink); }
 h1 b { font-size: .40em; vertical-align: top; margin-left: .25em; }
 .hero-copy > p:not(.eyebrow) { color: var(--muted); margin-bottom: 19px; }
 .actions { display: flex; flex-wrap: wrap; gap: 9px; }
@@ -90,6 +93,11 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; }
 .fine { margin-top: 10px; }
 footer { padding: 17px 0; flex-wrap: wrap; }
+.case-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 12px; }
+.case-tools button { border-color: var(--line); }
+.case-tools a { color: var(--green); }
+#case-status { flex-basis: 100%; letter-spacing: normal; }
+#case-status:empty { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
 @media (max-width: 530px) {

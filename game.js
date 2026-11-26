@@ -1,9 +1,41 @@
 'use strict';
 
 const $ = id => document.getElementById(id);
-const baseline = ER.baseline();
-let run = ER.newRun();
+const { case01, validate } = ERCases;
+const languageQuery = new URLSearchParams(location.search).get('lang');
+let language = Object.hasOwn(strings, languageQuery) ? languageQuery : savedLanguage();
+let workload = case01;
+let baseline = ER.baseline(workload);
+let run = ER.newRun(workload);
 let timer = null;
+let restarted = false;
+let importStatus = [];
+let fileRequest = 0;
+
+function savedLanguage() {
+  try {
+    const saved = localStorage.getItem('inference-er-language');
+    if (Object.hasOwn(strings, saved)) return saved;
+  } catch {
+    // The game also runs from a local file with storage disabled.
+  }
+  return navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function translate() {
+  const t = strings[language];
+  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  document.title = t.pageTitle;
+  document.querySelector('meta[name="description"]').content = t.intro;
+  for (const element of document.querySelectorAll('[data-text]')) {
+    element.textContent = t[element.dataset.text];
+  }
+  for (const button of document.querySelectorAll('[data-language]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.language === language));
+  }
+  $('chart').setAttribute('aria-label', t.chart);
+  render();
+}
 
 function settings() {
   return {
@@ -14,15 +46,33 @@ function settings() {
 }
 
 function render() {
+  const t = strings[language];
   const stats = ER.stats(run);
   const remaining = ER.duration - run.second;
-  $('clock').textContent = remaining === 60 ? '01:00' : '00:' + String(remaining).padStart(2, '0');
+  const finished = remaining === 0;
+  const running = timer !== null;
+  const custom = workload !== case01;
+  $('case-label').textContent = custom ? t.importedCase : t.case01;
+  $('case-intro').textContent = custom ? t.importedIntro(workload.requests.length) : t.intro;
+  $('hint').textContent = custom ? t.importedHint : t.hint;
+  $('source-note').textContent = workload.source === 'trace-derived' ? t.sourceTrace : t.sourceSynthetic;
+  $('restore-case').hidden = !custom;
+  const [status, detail] = importStatus;
+  const message = typeof t[status] === 'function' ? t[status](detail) : t[status] ?? '';
+  if ($('case-status').textContent !== message) $('case-status').textContent = message;
+  $('state').textContent = finished ? t.finished : running ? t.running : t.idle;
+  $('phase').textContent = finished ? t.finishedNote : running ? t.runningNote
+    : restarted ? t.resetNote : t.idleNote;
+  $('start').disabled = finished || running;
+  $('start').textContent = finished ? t.finishedButton : running ? t.runningButton : t.start;
+  $('clock').textContent = String(Math.floor(remaining / 60)).padStart(2, '0')
+    + ':' + String(remaining % 60).padStart(2, '0');
   $('progress').style.width = remaining / ER.duration * 100 + '%';
   $('done').textContent = stats.done;
   $('timeout').textContent = stats.timeout;
-  $('p95').textContent = stats.p95 === null ? '—' : stats.p95 + 's';
+  $('p95').textContent = stats.shortP95 === null ? '—' : stats.shortP95 + 's';
   $('rate').textContent = stats.rate.toFixed(1);
-  $('pending').textContent = stats.pending + ' 活跃 · ' + stats.rejected + ' 拒绝';
+  $('pending').textContent = t.pending(stats.pending, stats.rejected);
   const peak = Math.max(16, ...run.history);
   const points = run.history.map((n, i) => [(i + 1) * 10, 129 - n * 114 / peak]);
   const line = [[0, 129], ...points].map(p => p.join(',')).join(' ');
@@ -31,31 +81,24 @@ function render() {
   const jobs = run.jobs.filter(j => j.status === 'active').slice(-12);
   $('queue').replaceChildren();
   if (!jobs.length) {
-    $('queue').textContent = run.second ? '当前没有在途请求。' : '接管后在这里查看请求处于 Prefill 还是 Decode。';
+    $('queue').textContent = run.second ? t.noJobs : t.queueIntro;
   }
   for (const job of jobs) {
     const badge = document.createElement('span');
     badge.className = 'job ' + job.kind;
-    badge.textContent = '#' + job.id + ' ' + (job.kind === 'long' ? '长' : '短') + ' · ' + (job.prompt ? 'Prefill' : 'Decode');
+    badge.textContent = '#' + job.id + ' ' + t[job.kind] + ' · ' + (job.prompt ? 'Prefill' : 'Decode');
     $('queue').append(badge);
   }
+  $('report').hidden = !finished;
+  if (finished) renderReport(stats, t);
 }
 
-function finish() {
-  clearInterval(timer);
-  timer = null;
-  $('state').textContent = '已结束';
-  $('phase').textContent = '本轮结束 · 可以重开同一批请求';
-  $('start').textContent = '本轮已结束';
-  const result = ER.stats(run);
-  const difference = result.done - baseline.done;
-  const verdict = difference > 0 ? '比默认策略多完成 ' + difference + ' 条'
-    : difference < 0 ? '比默认策略少完成 ' + -difference + ' 条' : '与默认策略完成数持平';
-  $('report-summary').textContent = '完成 ' + result.done + ' 条请求，' + verdict + '。';
+function renderReport(result, t) {
+  $('report-summary').textContent = t.reportSummary(result.done, result.done - baseline.done);
   const rows = [
-    ['完成请求', 'done'], ['完成短请求', 'short'], ['超时', 'timeout'],
-    ['主动拒绝', 'rejected'], ['结束时仍在途', 'pending'],
-    ['首 Token P95', 'p95', ' s'], ['输出 token/s', 'rate', '', 1],
+    [t.reportDone, 'done'], [t.reportShort, 'short'], [t.reportTimeout, 'timeout'],
+    [t.reportRejected, 'rejected'], [t.reportPending, 'pending'],
+    [t.shortP95, 'shortP95', ' s'], [t.reportP95, 'p95', ' s'], [t.rate, 'rate', '', 1],
   ];
   $('results').replaceChildren();
   for (const [label, key, unit = '', precision = 0] of rows) {
@@ -75,33 +118,71 @@ function finish() {
     }
     $('results').append(row);
   }
-  $('report').hidden = false;
-  $('report-title').focus();
 }
 
 $('start').addEventListener('click', () => {
   if (timer !== null || run.second >= ER.duration) return;
-  $('start').disabled = true;
-  $('start').textContent = '●  正在接管';
-  $('state').textContent = '运行中';
-  $('phase').textContent = '同一批请求 · 调度策略实时生效';
   timer = setInterval(() => {
     ER.step(run, settings());
+    const finished = run.second === ER.duration;
+    if (finished) {
+      clearInterval(timer);
+      timer = null;
+    }
     render();
-    if (run.second === ER.duration) finish();
+    if (finished) $('report-title').focus();
   }, 1000);
-});
-
-$('reset').addEventListener('click', () => {
-  clearInterval(timer);
-  timer = null;
-  run = ER.newRun();
-  $('report').hidden = true;
-  $('start').disabled = false;
-  $('start').textContent = '▶  接管服务';
-  $('state').textContent = '待命';
-  $('phase').textContent = '待命 · 保留当前策略，可直接再试';
   render();
 });
 
-render();
+function replay() {
+  clearInterval(timer);
+  timer = null;
+  restarted = true;
+  run = ER.newRun(workload);
+  render();
+}
+
+$('reset').addEventListener('click', replay);
+$('import-case').addEventListener('click', () => $('case-file').click());
+$('case-file').addEventListener('change', async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const load = ++fileRequest;
+  try {
+    if (file.size > 128 * 1024) throw new Error('fileError');
+    const candidate = validate(JSON.parse(await file.text()));
+    if (load !== fileRequest) return;
+    workload = candidate;
+    baseline = ER.baseline(workload);
+    importStatus = ['importOK', workload.requests.length];
+    replay();
+  } catch (error) {
+    if (load !== fileRequest) return;
+    const [key, row] = error.message.split(':');
+    importStatus = ['caseHeader', 'caseRequests', 'caseRow'].includes(key) ? [key, row] : ['fileError'];
+    render();
+  }
+});
+$('restore-case').addEventListener('click', () => {
+  fileRequest++;
+  workload = case01;
+  baseline = ER.baseline(workload);
+  importStatus = [];
+  replay();
+});
+
+for (const button of document.querySelectorAll('[data-language]')) {
+  button.addEventListener('click', () => {
+    language = button.dataset.language;
+    try {
+      localStorage.setItem('inference-er-language', language);
+    } catch {
+      // Keep the chosen language for this page when storage is unavailable.
+    }
+    translate();
+  });
+}
+
+translate();

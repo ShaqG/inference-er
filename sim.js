@@ -1,26 +1,24 @@
 (function (root) {
-  const duration = 60;
+  const { duration, case01 } = typeof module === 'object' ? require('./case.js') : root.ERCases;
   const defaults = { batch: 4, reserve: false, limit: false };
 
-  function newRun() {
-    return { second: 0, jobs: [], history: [], nextId: 1, tokens: 0 };
+  function newRun(workload = case01) {
+    return { second: 0, jobs: [], history: [], requests: workload.requests, cursor: 0, tokens: 0 };
   }
 
   function step(run, settings) {
     if (run.second >= duration) return;
     const now = ++run.second;
-    function admit(kind) {
-      const long = kind === 'long';
-      const activeLong = run.jobs.filter(j => j.kind === 'long' && j.status === 'active').length;
-      const rejected = long && settings.limit && activeLong >= 2;
+    while (run.requests[run.cursor]?.at === now) {
+      const { kind, prefillWork, outputTokens, timeout } = run.requests[run.cursor++];
+      const rejected = kind === 'long' && settings.limit
+        && run.jobs.filter(j => j.kind === 'long' && j.status === 'active').length >= 2;
       run.jobs.push({
-        id: run.nextId++, kind, at: now, deadline: now + (long ? 23 : 9),
-        prompt: long ? 34 : 4, remaining: long ? 25 : 5,
+        id: run.cursor, kind, at: now, deadline: now + timeout,
+        prompt: prefillWork, remaining: outputTokens,
         first: null, status: rejected ? 'rejected' : 'active',
       });
     }
-    if (now % 2 === 1 || (now >= 17 && now <= 28)) admit('short');
-    if ([8, 9, 10, 11, 13, 16, 23, 27, 36, 37, 40, 48].includes(now)) admit('long');
     for (const job of run.jobs) {
       if (job.status === 'active' && now > job.deadline) job.status = 'timeout';
     }
@@ -52,17 +50,20 @@
 
   function stats(run) {
     const count = status => run.jobs.filter(j => j.status === status).length;
-    const first = run.jobs.filter(j => j.first !== null).map(j => j.first).sort((a, b) => a - b);
+    function p95(jobs) {
+      const first = jobs.filter(j => j.first !== null).map(j => j.first).sort((a, b) => a - b);
+      return first.length ? first[Math.ceil(first.length * .95) - 1] : null;
+    }
     return {
       done: count('done'), timeout: count('timeout'), rejected: count('rejected'),
       pending: count('active'), short: run.jobs.filter(j => j.kind === 'short' && j.status === 'done').length,
-      p95: first.length ? first[Math.ceil(first.length * .95) - 1] : null,
+      p95: p95(run.jobs), shortP95: p95(run.jobs.filter(j => j.kind === 'short')),
       rate: run.second ? run.tokens / run.second : 0,
     };
   }
 
-  function baseline() {
-    const run = newRun();
+  function baseline(workload = case01) {
+    const run = newRun(workload);
     for (let second = 0; second < duration; second++) step(run, defaults);
     return stats(run);
   }

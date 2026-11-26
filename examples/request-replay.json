@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "source": "synthetic",
+  "requests": [
+    {"at": 1, "kind": "short", "prefillWork": 4, "outputTokens": 5, "timeout": 9},
+    {"at": 3, "kind": "short", "prefillWork": 4, "outputTokens": 5, "timeout": 9},
+    {"at": 8, "kind": "long", "prefillWork": 34, "outputTokens": 25, "timeout": 23},
+    {"at": 8, "kind": "long", "prefillWork": 34, "outputTokens": 25, "timeout": 23},
+    {"at": 8, "kind": "long", "prefillWork": 34, "outputTokens": 25, "timeout": 23},
+    {"at": 9, "kind": "short", "prefillWork": 4, "outputTokens": 5, "timeout": 9},
+    {"at": 10, "kind": "short", "prefillWork": 4, "outputTokens": 5, "timeout": 9}
+  ]
+}

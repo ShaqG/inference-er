@@ -1,20 +1,43 @@
-# 推理急诊室 · Inference ER
+# Inference ER
 
-一场 60 秒的 LLM 推理调度小游戏。长 Prompt 突然涌入，短聊天开始超时。接管服务，在同一批请求上试出自己的策略。
+English · [简体中文](README.zh-CN.md)
 
-## 试玩
+A 60-second LLM scheduling game. A surge of long prompts is making short chats time out. Take over the service and try different policies on the same workload.
 
-把这个仓库下载到本机，用浏览器打开 [index.html](index.html)。静态页面可离线运行，无需安装依赖或启动服务器。
+**[Play online](https://shaqg.github.io/inference-er/?lang=en)** · Or download the repository and open `index.html` to play offline.
 
-1. 点击 **接管服务**。第 8 秒起，长 Prompt 会集中到达。
-2. 调整 Decode 批大小、短请求优先或长请求限流。观察积压、超时、首 Token P95 和输出吞吐。
-3. 查看本轮复盘，与默认策略对比。点击 **重开同一局** 可以用另一套策略处理相同的请求。
+1. Click **Take over**. The first long prompt arrives at second 8.
+2. Change the decode batch size, prioritize short requests, or limit long requests. Watch backlog, short-request TTFT P95, and output tokens per second.
+3. Compare the debrief with the default policy. Replay the same case and change one setting at a time.
 
-## 模拟规则
+## Request replay format
 
-每一秒按固定时间表加入长、短请求。Prefill 和 Decode 共用简化的计算预算，Decode 每步受批大小限制。超出时限的请求计为超时，限流主动拦下的请求单独计为拒绝。首 Token P95 只统计已产生首个 token 的请求。
+Use **Import request JSON** to load a local [example](examples/request-replay.json) or your own workload. Importing starts a fresh round and recomputes the default policy on the imported requests. Files are read locally in the browser.
 
-请求和算力预算都是合成数据，适合演示调度取舍。
+```json
+{
+  "version": 1,
+  "source": "synthetic",
+  "requests": [
+    {"at": 1, "kind": "short", "prefillWork": 4, "outputTokens": 5, "timeout": 9},
+    {"at": 8, "kind": "long", "prefillWork": 34, "outputTokens": 25, "timeout": 23}
+  ]
+}
+```
 
-- [sim.js](sim.js) 包含请求流、调度规则和指标计算。
-- [game.js](game.js) 负责计时、调度台和复盘。
+| Field | Meaning |
+| --- | --- |
+| `source` | Use `synthetic` for hand-built workloads or `trace-derived` for workloads derived from an experiment. |
+| `at` | Arrival second, an integer from 1 to 60. Sort rows by arrival. Rows in the same second retain file order. |
+| `kind` | `short` or `long`. Used for scheduling and metric grouping. |
+| `prefillWork` | Prefill work in simulated budget units. |
+| `outputTokens` | Target output token count. Both work values are integers from 1 to 10,000. |
+| `timeout` | Simulated deadline in seconds after arrival, from 1 to 60. A request expires on the first tick after its deadline. |
+
+Keep each file under 128 KiB with 1 to 600 requests. To prepare a replay from a real trace, round arrivals into seconds, choose a documented mapping from prompt length to prefill work, and leave out prompt text and request identifiers. A replay models the arrivals only. All game metrics are simulated.
+
+## How the simulation works
+
+Prefill and decode draw from a simple shared budget. Decode is capped by the selected batch size. The default uses batch size 4 with prioritization and admission limits off. The debrief counts timeouts, rejections, and requests still in flight separately. TTFT is time to first token. Its P95 includes requests that produced a first token, even if they timed out later.
+
+Run the workload and simulation checks locally with `node --test`.
