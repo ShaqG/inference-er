@@ -6,8 +6,9 @@ A series of 60-second browser games about serving large language models. Each ca
 
 - **CASE 01 · Scheduling** · [Play online](https://shaqg.github.io/inference-er/?lang=en) · [Open offline](index.html) · A surge of long prompts is making short chats time out. Take over the service and try scheduling policies on the same workload.
 - **CASE 02 · MoE Triage** · [Play online](https://shaqg.github.io/inference-er/triage/?lang=en) · [Open offline](triage/index.html) · A burst of tokens is heading for the same few experts, and their rank is slowing every step. Re-place the experts and decide when to pay for redundant ones.
+- **CASE 03 · Second Opinion** · [Play online](https://shaqg.github.io/inference-er/spec/?lang=en) · [Open offline](spec/index.html) · A small draft model writes tokens for every request and the target model checks them in one pass. Set the draft length as the traffic changes.
 
-To play offline, download the repository and open either `index.html` file.
+To play offline, download the repository and open any of the `index.html` files.
 
 ## CASE 01 · Scheduling
 
@@ -57,4 +58,18 @@ Each second is one step of 4096 tokens through a model with 16 experts and top-2
 
 The cost model is sized from a reference deployment, not measured: 58 MoE layers with experts of hidden size 7168 and intermediate size 2048 in BF16, about 150 TFLOPS of effective compute, and a 150 GB/s link. That gives about 34 µs per row per step, 1.2 ms of fixed overhead per step, and 34 ms to move one expert's weights. Communication is assumed to overlap with compute. A production rebalance moves weights for every layer and runs minutes apart; the game compresses that into a pause of a few steps.
 
-Run the workload and simulation checks for both cases locally with `node --test`.
+## CASE 03 · Second Opinion
+
+1. Click **Start rounds**. Traffic moves from chat to code completion at second 16, a peak of 256 concurrent requests takes over at second 36, and creative writing starts at second 48.
+2. Pick the draft length: off, 2, 4, or 8. Watch step latency, the accepted length, the share of drafted tokens rejected, and the speedup over the same step without speculation.
+3. Compare the debrief with the default policy, phase by phase. Replay the same matches and change one setting at a time.
+
+### How the simulation works
+
+Each second is one decode step. For every request in the batch a 1B draft model writes k tokens, one step at a time, and the target model checks all of them in a single forward pass. A request keeps the drafted tokens up to its first mismatch and gets one token of the target's own, so it emits between 1 and k+1 tokens per step. Whether a drafted token matches is drawn by a seeded generator: 75% in chat, 92% in code completion, 75% at peak and 45% in creative writing. The batch is 16, 24, 256 and 24 requests. Every replay reuses the same draws, so policies are compared on the same matches. The default keeps speculation off. Speedup compares a step's output per request with the same step without speculation, averaged over steps.
+
+The cost model is sized from a reference deployment, not measured: a 70B dense target and a 1B draft, both in BF16, on 8 A100 80GB with tensor parallel 8. Reading the target's weights, about 140 GB, takes about 20 ms per step, which is about 43% of the aggregate HBM bandwidth once all-reduce and launch overhead are counted. Every token the target verifies adds about 0.15 ms of compute, which is 140 GFLOPs at about 0.9 PFLOPS effective. A draft step is a fixed 1 ms, dominated by kernel launches and synchronization rather than its 2.5 GB of weights, plus 0.01 ms per drafted token.
+
+Token matches are independent and identical for every request, while real acceptance is bursty and varies by request and by position. Only chain drafts are modeled, not tree drafts such as EAGLE or Medusa. Attention, prefill and the draft model's memory are left out.
+
+Run the workload and simulation checks for all three cases locally with `node --test`.

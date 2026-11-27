@@ -1,0 +1,14 @@
+.base { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.split { position: relative; display: flex; height: 18px; margin-top: 8px; background: #0f171a; border: 1px solid var(--line); }
+.split-draft { background: #704b40; transition: width .25s linear; }
+.split-verify { background: var(--green); transition: width .25s linear; }
+.split.slow .split-verify { background: var(--orange); }
+.split-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
+.split-labels { margin-top: 4px; letter-spacing: 0; font-weight: 400; }
+#drafts { display: block; width: 100%; height: 90px; margin-top: 6px; }
+#drafts rect { stroke: #0c1214; stroke-width: 1; }
+.kept { fill: var(--green); }
+.dropped { fill: var(--orange); }
+.idle { fill: var(--muted); }
+.report h3 { font-size: 15px; margin: 18px 0 4px; }
+@media (prefers-reduced-motion: reduce) { .split-draft, .split-verify { transition: none; } }
