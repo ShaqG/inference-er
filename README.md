@@ -19,6 +19,11 @@ The demo shows Case 03, one of the four: the same draft length goes from helping
 | **03 · Second Opinion** | Drafting can produce more tokens per target pass. When does the cost of verification make a shorter draft worthwhile? | [Play case 03](https://shaqg.github.io/inference-er/spec/) |
 | **04 · P/D Split** | Prefill and decode share the same GPUs, and every prompt stalls the decoding on its card. How many GPUs should prefill, and how many decode? | [Play case 04](https://shaqg.github.io/inference-er/pd/) |
 
+[![Case 01 · Scheduling. The backlog peaks while short chats wait for their first token.](assets/case-01-en.webp)](https://shaqg.github.io/inference-er/)
+[![Case 02 · MoE Triage. Two hot experts leave one rank at twice the average load.](assets/case-02-en.webp)](https://shaqg.github.io/inference-er/triage/)
+[![Case 03 · Second Opinion. Drafting speeds up code completion and slows down the 256-request peak.](assets/case-03-en.webp)](https://shaqg.github.io/inference-er/spec/)
+[![Case 04 · P/D Split. Latency charts against the SLO lines while the eight GPUs run with their roles.](assets/case-04-en.webp)](https://shaqg.github.io/inference-er/pd/)
+
 Each case replays the same workload and compares your run against a default policy. To play offline, download the repository and open [Scheduling](index.html), [MoE Triage](triage/index.html), [Second Opinion](spec/index.html), or [P/D Split](pd/index.html) in a browser. No installation or account is required.
 
 ## CASE 01 · Scheduling
@@ -57,6 +62,10 @@ Keep each file under 128 KiB with 1 to 600 requests. To prepare a replay from a 
 
 Prefill and decode draw from a simple shared budget. Decode is capped by the selected batch size. The default uses batch size 4 with prioritization and admission limits off. The debrief counts timeouts, rejections, and requests still in flight separately. TTFT is time to first token. Its P95 includes requests that produced a first token, even if they timed out later.
 
+- **Workload**: one short chat every other second, plus long prompts in three waves from seconds 8, 13 and 36. A short chat needs 5 output tokens in 9 seconds, a long prompt 25 in 23.
+- **Rules**: each second has a shared budget of 10–18 units, by batch size. Decoding produces up to two tokens per request, then prefill takes what is left, in priority order when that is on.
+- **Not modeled**: per-token timing inside a second, KV cache, and continuous batching.
+
 ## CASE 02 · MoE Triage
 
 1. Click **Start triage**. Two experts heat up at second 15, and one dominant expert takes over at second 39.
@@ -65,7 +74,11 @@ Prefill and decode draw from a simple shared budget. Decode is capped by the sel
 
 ### How the simulation works
 
-Each second is one step of 4096 tokens through a model with 16 experts and top-2 routing across 4 ranks. A seeded generator draws the routing, so every replay sees the same tokens, and no token is dropped. A rank computes every row routed to its experts, a step finishes when its slowest rank does, and the idle share is the rank time the other ranks spend waiting. Rebalancing re-places experts by their load over the last 4 steps. Weights only move when the new layout cuts the slowest rank's load by 5% or more, and every new copy or swapped pair adds weight moves to that step. Redundant experts give each rank a fifth slot for 25% more weight memory and split a hot expert's tokens evenly across its copies. A copy always goes to a rank without the expert. Turning redundancy off drops the copies at the next step without moving weights; adding them needs a rebalance. The default policy never rebalances and uses no redundant experts.
+Each second is one step of 4096 tokens through a model with 16 experts and top-2 routing across 4 ranks. A seeded generator draws the routing, so every replay sees the same tokens, and no token is dropped. Two experts heat up at second 15, and one dominant expert takes over at second 39.
+
+- **Rules**: a rank computes every row routed to its experts, a step finishes when its slowest rank does, and the idle share is the rank time the other ranks spend waiting. Rebalancing re-places experts by their load over the last 4 steps and only moves weights when the new layout cuts the slowest rank's load by 5% or more; every new copy or swapped pair adds weight moves to that step.
+- **Redundant experts** give each rank a fifth slot for 25% more weight memory and split a hot expert's tokens evenly across its copies. A copy always goes to a rank without the expert. Turning redundancy off drops the copies at the next step without moving weights; adding them needs a rebalance. The default policy never rebalances and uses no redundant experts.
+- **Not modeled**: token drops and dispatch latency. Every token reaches exactly two experts.
 
 The cost model is sized from a reference deployment, not measured: 58 MoE layers with experts of hidden size 7168 and intermediate size 2048 in BF16, about 150 TFLOPS of effective compute, and a 150 GB/s link. That gives about 34 µs per row per step, 1.2 ms of fixed overhead per step, and 34 ms to move one expert's weights. Communication is assumed to overlap with compute. A production rebalance moves weights for every layer and runs minutes apart; the game compresses that into a pause of a few steps.
 
@@ -77,11 +90,13 @@ The cost model is sized from a reference deployment, not measured: 58 MoE layers
 
 ### How the simulation works
 
-Each second is one decode step. For every request in the batch a 1B draft model writes k tokens, one step at a time, and the target model checks all of them in a single forward pass. A request keeps the drafted tokens up to its first mismatch and gets one token of the target's own, so it emits between 1 and k+1 tokens per step. Whether a drafted token matches is drawn by a seeded generator: 75% in chat, 92% in code completion, 75% at peak and 45% in creative writing. The batch is 16 requests, except for 256 at peak, so chat and peak differ only in batch size. Every replay reuses the same draws, so policies are compared on the same matches. The default keeps speculation off. Speedup compares a step's output per request with the same step without speculation. Speedup and accepted length are averaged over requests, so each step counts by its batch size and the peak weighs more than the quiet hours.
+Each second is one decode step. For every request in the batch a 1B draft model writes k tokens, one step at a time, and the target model checks all of them in a single forward pass. A request keeps the drafted tokens up to its first mismatch and gets one token of the target's own, so it emits between 1 and k+1 tokens per step. Every replay reuses the same draws, so policies are compared on the same matches. The default keeps speculation off.
+
+- **Workload**: 16 concurrent requests, except for 256 at peak, so chat and peak differ only in batch size. Whether a drafted token matches is drawn by a seeded generator: 75% in chat, 92% in code completion, 75% at peak and 45% in creative writing.
+- **Rules**: speedup compares a step's output per request with the same step without speculation. Speedup and accepted length are averaged over requests, so each step counts by its batch size and the peak weighs more than the quiet hours.
+- **Not modeled**: acceptance is independent and identical for every request, while real acceptance is bursty and varies by request and by position. Only chain drafts are modeled, not tree drafts such as EAGLE or Medusa. Attention, prefill and the draft model's memory are left out.
 
 The cost model is sized from a reference deployment, not measured: a 70B dense target and a 1B draft, both in BF16, on 8 A100 80GB with tensor parallel 8. Every forward pass takes the larger of its weight-read time and its compute time, with a smooth knee between the two. Reading the target's weights, about 140 GB, takes about 20 ms, which is about 43% of the aggregate HBM bandwidth once all-reduce and launch overhead are counted. Each token the target verifies adds about 0.15 ms of compute, which is 140 GFLOPs at about 0.9 PFLOPS effective, so a target step is bound by weight reads below about 130 tokens and by compute above that. A draft step is a fixed 1 ms, dominated by kernel launches and synchronization rather than its 2.5 GB of weights, plus 0.01 ms per drafted token.
-
-Token matches are independent and identical for every request, while real acceptance is bursty and varies by request and by position. Only chain drafts are modeled, not tree drafts such as EAGLE or Medusa. Attention, prefill and the draft model's memory are left out.
 
 ## CASE 04 · P/D Split
 
@@ -91,11 +106,13 @@ Token matches are independent and identical for every request, while real accept
 
 ### How the simulation works
 
-Eight GPUs serve one model. By default every GPU prefills and decodes, and prefill goes first: whatever share of a second the prompts take is lost to decoding, so every token generated in that second is slower. After a split the first GPUs only prefill and the rest only decode, and the change applies from the next second. Requests arrive per second from a Poisson distribution, with prompt and output lengths drawn uniformly, and every replay reuses the same draws. Prefill is first come, first served across the prefill GPUs at 0.08 ms per prompt token, and a prompt that is not finished continues in the next second. Decode steps run back to back for the rest of the second, and a step takes `hypot(14 ms, 0.16 ms × requests per decode GPU)`. A request starts decoding once its prompt is done and its whole context fits in the KV room of the decode GPUs, 150,000 tokens each. When the decode pool shrinks, the requests admitted last pause until room frees up. A request is on time when its first token arrives within 1 s and its output tokens come at most 20 ms apart on average. A request still waiting for its first token counts as late.
+Eight GPUs serve one model. By default every GPU prefills and decodes, and prefill goes first: whatever share of a second the prompts take is lost to decoding, so every token generated in that second is slower. After a split the first GPUs only prefill and the rest only decode, and the change applies from the next second.
+
+- **Workload**: requests arrive per second from a Poisson distribution, with prompt and output lengths drawn uniformly, and every replay reuses the same draws. Short chats rush in at second 13, document Q&A starts at second 31, and long-form reasoning arrives at second 46.
+- **Rules**: prefill is first come, first served across the prefill GPUs at 0.08 ms per prompt token, and a prompt that is not finished continues in the next second. Decode steps run back to back for the rest of the second, and a step takes `hypot(14 ms, 0.16 ms × requests per decode GPU)`. A request starts decoding once its prompt is done and its whole context fits in the KV room of the decode GPUs, 150,000 tokens each. When the decode pool shrinks, the requests admitted last pause until room frees up. A request is on time when its first token arrives within 1 s and its output tokens come at most 20 ms apart on average. A request still waiting for its first token counts as late.
+- **Not modeled**: the KV transfer from a prefill GPU to a decode GPU (a 5,000-token prompt is about 1.3 GB, on the order of 10 ms over NVLink against a first-token latency of hundreds of milliseconds), the migration when a GPU changes role, chunked prefill, attention cost, prefix caching, and any limit on batch size other than KV room. Above 30 arrivals per second, the draw is normal with the same mean and variance instead of Poisson. With the default, 11% of requests are on time. Changing the split with the traffic keeps all of them on time.
 
 The cost model is sized from a reference deployment, not measured: a 32B dense model with FP8 weights (about 33 GB) and a BF16 KV cache of 256 KiB per token (64 layers, 8 KV heads, head size 128), one copy per H100 80GB. Prefill takes 64 GFLOPs per token at about 800 TFLOPS effective, which is 0.08 ms, or about 12,500 tokens per second per GPU. Reading the weights for a decode step takes about 14 ms at about 2.4 TB/s, and each request in the batch adds about 0.16 ms of compute. Of the about 76 GB usable per GPU, about 40 GB is left for KV after the weights and a few GB for everything else, room for about 150,000 tokens.
-
-Left out: the KV transfer from a prefill GPU to a decode GPU (a 5,000-token prompt is about 1.3 GB, on the order of 10 ms over NVLink against a first-token latency of hundreds of milliseconds), the migration when a GPU changes role, chunked prefill, attention cost, prefix caching, and any limit on batch size other than KV room. Above 30 arrivals per second, the draw is normal with the same mean and variance instead of Poisson. With the default, 11% of requests are on time. Changing the split with the traffic keeps all of them on time.
 
 ## Development
 
