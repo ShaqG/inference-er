@@ -41,6 +41,13 @@ const strings = {
         : `${head}，起草的 token 有 ${(waste * 100).toFixed(1)}% 被拒绝。`;
     },
     reportNote: '默认策略关闭投机解码。加速比是同一步里每条请求的产出速度与不开投机时之比，接受长度是每条请求每步产出的 token 数。两者都按各步的并发数加权，所以高峰里的每条请求都算进去。',
+    diagTitle: '诊断', diagMet: '达成', diagMissed: '未达成',
+    diagNewBest: '本关新纪录',
+    diagBest: n => `本关最佳 ${n}/3 星`,
+    diagStars: n => `评级：${n}/3 星`,
+    rosterAria: n => `本关最佳成绩：${n}/3 星`,
+    goal03a: '整场加速比高于不开投机',
+    goal03b: '晚高峰阶段不被拖慢',
     sourceLink: '源代码', sourceSynthetic: '合成草稿 · 所有结果为模拟值',
   },
   en: {
@@ -83,6 +90,13 @@ const strings = {
         : `${head}, with ${(waste * 100).toFixed(1)}% of the drafted tokens rejected.`;
     },
     reportNote: 'The default keeps speculation off. Speedup compares a step\'s output per request with the same step without speculation, and accepted length is the tokens a request gets per step. Both are weighted by the batch of each step, so every request in the peak counts.',
+    diagTitle: 'Diagnosis', diagMet: 'Met', diagMissed: 'Missed',
+    diagNewBest: 'New best for this case',
+    diagBest: n => `Best for this case: ${n}/3 stars`,
+    diagStars: n => `Rating: ${n} of 3 stars`,
+    rosterAria: n => `Best result: ${n} of 3 stars`,
+    goal03a: 'Higher overall speedup than no speculation',
+    goal03b: 'The 256-request peak is not slowed down',
     sourceLink: 'Source code', sourceSynthetic: 'Synthetic drafts · All results are simulated',
   },
 };

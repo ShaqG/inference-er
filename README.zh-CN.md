@@ -24,7 +24,7 @@
 [![第三关 · 投机代诊。起草让代码补全提速，却拖慢了 256 条并发的高峰。](assets/case-03-zh.webp)](https://shaqg.github.io/inference-er/spec/?lang=zh)
 [![第四关 · PD 分离。延迟曲线对着达标线跑，八张 GPU 各自在跑自己的角色。](assets/case-04-zh.webp)](https://shaqg.github.io/inference-er/pd/?lang=zh)
 
-每次重开都会回放同一批负载，复盘可以和默认策略比较。也可下载仓库，在浏览器离线打开[调度](index.html)、[MoE 分诊台](triage/index.html)、[投机代诊](spec/index.html)或[PD 分离](pd/index.html)，无需安装或登录。
+每次重开都会回放同一批负载，复盘可以和默认策略比较。每关最多可拿到三颗星，值班表成绩保存在浏览器本地。也可下载仓库，在浏览器离线打开[调度](index.html)、[MoE 分诊台](triage/index.html)、[投机代诊](spec/index.html)或[PD 分离](pd/index.html)，无需安装或登录。
 
 ## CASE 01 · 调度
 

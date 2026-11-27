@@ -15,6 +15,7 @@ function translate() {
   for (const element of document.querySelectorAll('[data-text]')) {
     element.textContent = t[element.dataset.text];
   }
+  ERProgress.renderNav(t);
   $('ttft-chart').setAttribute('aria-label', t.ttftAria);
   $('tpot-chart').setAttribute('aria-label', t.tpotAria);
   $('gpus').setAttribute('aria-label', t.gpusAria);
@@ -87,7 +88,18 @@ function render() {
   renderLine('tpot-line', second => second.tpot, ER.slo.tpot * 2);
   renderGpus(last, t);
   $('report').hidden = !finished;
-  if (finished) renderReport(stats, t);
+  $('diagnosis').hidden = !finished;
+  if (finished) {
+    renderReport(stats, t);
+    ERProgress.renderDiagnosis($('diagnosis'), t, {
+      id: 'c04',
+      recordable: true,
+      goals: [
+        { label: t.goal04a, ok: stats.total > 0 && stats.good / stats.total >= .9 },
+        { label: t.goal04b, ok: stats.total > 0 && stats.good === stats.total },
+      ],
+    });
+  }
 }
 
 function renderReport(result, t) {

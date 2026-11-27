@@ -18,6 +18,7 @@ function translate() {
   for (const element of document.querySelectorAll('[data-text]')) {
     element.textContent = t[element.dataset.text];
   }
+  ERProgress.renderNav(t);
   $('chart').setAttribute('aria-label', t.chart);
   render();
   ERLocale.apply(language);
@@ -76,7 +77,21 @@ function render() {
     $('queue').append(badge);
   }
   $('report').hidden = !finished;
-  if (finished) renderReport(stats, t);
+  $('diagnosis').hidden = !finished;
+  if (finished) {
+    renderReport(stats, t);
+    ERProgress.renderDiagnosis($('diagnosis'), t, {
+      id: 'c01',
+      // Imported workloads get a diagnosis against their own baseline, but only the
+      // built-in case counts toward the roster.
+      recordable: workload === case01,
+      goals: [
+        { label: t.goal01a, ok: stats.done > baseline.done },
+        { label: t.goal01b, ok: baseline.shortP95 === null
+          || (stats.shortP95 !== null && stats.shortP95 < baseline.shortP95) },
+      ],
+    });
+  }
 }
 
 function renderReport(result, t) {

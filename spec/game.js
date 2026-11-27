@@ -15,6 +15,7 @@ function translate() {
   for (const element of document.querySelectorAll('[data-text]')) {
     element.textContent = t[element.dataset.text];
   }
+  ERProgress.renderNav(t);
   $('chart').setAttribute('aria-label', t.chart);
   $('drafts').setAttribute('aria-label', t.draftsChart);
   render();
@@ -91,7 +92,23 @@ function render() {
   renderSplit(last, t);
   renderDrafts();
   $('report').hidden = !finished;
-  if (finished) renderReport(stats, t);
+  $('diagnosis').hidden = !finished;
+  if (finished) {
+    renderReport(stats, t);
+    // Phase 2 is the 256-request peak: verification turns compute-bound there, so a
+    // draft that is not shortened drags every step below the no-speculation line.
+    const peak = run.history.filter(h => h.phase === 2);
+    const peakSpeedup = peak.reduce((a, h) => a + h.speedup * h.batch, 0)
+      / peak.reduce((a, h) => a + h.batch, 0);
+    ERProgress.renderDiagnosis($('diagnosis'), t, {
+      id: 'c03',
+      recordable: true,
+      goals: [
+        { label: t.goal03a, ok: stats.meanSpeedup > (baseline.meanSpeedup ?? 1) + 1e-9 },
+        { label: t.goal03b, ok: peakSpeedup >= 1 - 1e-9 },
+      ],
+    });
+  }
 }
 
 function renderReport(result, t) {

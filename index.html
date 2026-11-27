@@ -18,6 +18,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <title>Inference ER | LLM Scheduling Game</title>
   <script src="locale.js"></script>
+  <script src="progress.js"></script>
   <link rel="stylesheet" href="style.css">
   <script src="case.js" defer></script>
   <script src="sim.js" defer></script>
@@ -29,10 +30,10 @@
   <div class="shell top-inner">
     <span class="brand"><b>＋</b> INFERENCE ER</span>
     <nav class="cases" aria-label="Cases">
-      <a href="index.html" aria-current="page" data-text="nav01">CASE 01 · SCHEDULING</a>
-      <a href="triage/index.html" data-text="nav02">CASE 02 · TRIAGE</a>
-      <a href="spec/index.html" data-text="nav03">CASE 03 · SECOND OPINION</a>
-      <a href="pd/index.html" data-text="nav04">CASE 04 · P/D SPLIT</a>
+      <span class="case"><a href="index.html" aria-current="page" data-text="nav01">CASE 01 · SCHEDULING</a><span class="case-stars" data-roster="c01"></span></span>
+      <span class="case"><a href="triage/index.html" data-text="nav02">CASE 02 · TRIAGE</a><span class="case-stars" data-roster="c02"></span></span>
+      <span class="case"><a href="spec/index.html" data-text="nav03">CASE 03 · SECOND OPINION</a><span class="case-stars" data-roster="c03"></span></span>
+      <span class="case"><a href="pd/index.html" data-text="nav04">CASE 04 · P/D SPLIT</a><span class="case-stars" data-roster="c04"></span></span>
     </nav>
     <div class="languages" role="group" aria-label="Language">
       <button type="button" lang="zh-CN" data-language="zh" aria-pressed="false" disabled>简体中文</button>
@@ -81,6 +82,7 @@
   <section id="report" class="panel report" hidden aria-labelledby="report-title">
     <h2 id="report-title" data-text="report" tabindex="-1">Debrief</h2>
     <p id="report-summary"></p>
+    <div id="diagnosis" class="diagnosis" hidden></div>
     <table><thead><tr><th scope="col" data-text="metric">Metric</th><th scope="col" data-text="thisRun">This run</th><th scope="col" data-text="baseline">Default</th><th scope="col" data-text="change">Change</th></tr></thead><tbody id="results"></tbody></table>
     <p class="fine" data-text="reportNote">The default uses batch size 4 with prioritization and admission limits off. TTFT P95 includes requests that reached their first token.</p>
   </section>

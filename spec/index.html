@@ -18,6 +18,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <title>投机代诊 | INFERENCE ER</title>
   <script src="../locale.js"></script>
+  <script src="../progress.js"></script>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="spec.css">
   <script src="case.js" defer></script>
@@ -30,10 +31,10 @@
   <div class="shell top-inner">
     <span class="brand"><b>＋</b> INFERENCE ER</span>
     <nav class="cases" aria-label="Cases">
-      <a href="../index.html" data-text="nav01">CASE 01 · 调度</a>
-      <a href="../triage/index.html" data-text="nav02">CASE 02 · 分诊台</a>
-      <a href="index.html" aria-current="page" data-text="nav03">CASE 03 · 代诊</a>
-      <a href="../pd/index.html" data-text="nav04">CASE 04 · PD 分离</a>
+      <span class="case"><a href="../index.html" data-text="nav01">CASE 01 · 调度</a><span class="case-stars" data-roster="c01"></span></span>
+      <span class="case"><a href="../triage/index.html" data-text="nav02">CASE 02 · 分诊台</a><span class="case-stars" data-roster="c02"></span></span>
+      <span class="case"><a href="index.html" aria-current="page" data-text="nav03">CASE 03 · 代诊</a><span class="case-stars" data-roster="c03"></span></span>
+      <span class="case"><a href="../pd/index.html" data-text="nav04">CASE 04 · PD 分离</a><span class="case-stars" data-roster="c04"></span></span>
     </nav>
     <div class="languages" role="group" aria-label="Language">
       <button type="button" lang="zh-CN" data-language="zh" aria-pressed="true" disabled>简体中文</button>
@@ -85,6 +86,7 @@
   <section id="report" class="panel report" hidden aria-labelledby="report-title">
     <h2 id="report-title" data-text="report" tabindex="-1">本轮复盘</h2>
     <p id="report-summary"></p>
+    <div id="diagnosis" class="diagnosis" hidden></div>
     <table><thead><tr><th scope="col" data-text="metric">指标</th><th scope="col" data-text="thisRun">本轮</th><th scope="col" data-text="baseline">默认策略</th><th scope="col" data-text="change">变化</th></tr></thead><tbody id="results"></tbody></table>
     <h3 data-text="byPhase">分阶段</h3>
     <table><thead><tr><th scope="col" data-text="phase">阶段</th><th scope="col" data-text="reportLength">平均接受长度</th><th scope="col" data-text="reportSpeedup">平均加速比</th></tr></thead><tbody id="phases"></tbody></table>

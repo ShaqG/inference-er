@@ -42,6 +42,13 @@ const strings = {
       return `${latency}，空转率 ${share(baseIdle)} → ${share(idle)}，${parts.length ? '代价是 ' + parts.join('和') : '没有额外代价'}。`;
     },
     reportNote: '默认策略不做重平衡，也不用冗余专家。倾斜倍数是最慢 rank 的负载除以平均负载，每搬一个专家计 34 ms。',
+    diagTitle: '诊断', diagMet: '达成', diagMissed: '未达成',
+    diagNewBest: '本关新纪录',
+    diagBest: n => `本关最佳 ${n}/3 星`,
+    diagStars: n => `评级：${n}/3 星`,
+    rosterAria: n => `本关最佳成绩：${n}/3 星`,
+    goal02a: '平均步延迟低于默认策略',
+    goal02b: '空转率低于默认策略',
     sourceLink: '源代码', sourceSynthetic: '合成路由 · 所有结果为模拟值',
   },
   en: {
@@ -85,6 +92,13 @@ const strings = {
       return `${latency}, with the idle share going from ${share(baseIdle)} to ${share(idle)} ${parts.length ? 'at a cost of ' + parts.join(' and ') : 'at no extra cost'}.`;
     },
     reportNote: 'The default never rebalances and uses no redundant experts. Imbalance is the slowest rank\'s load divided by the even share. Each moved expert costs 34 ms.',
+    diagTitle: 'Diagnosis', diagMet: 'Met', diagMissed: 'Missed',
+    diagNewBest: 'New best for this case',
+    diagBest: n => `Best for this case: ${n}/3 stars`,
+    diagStars: n => `Rating: ${n} of 3 stars`,
+    rosterAria: n => `Best result: ${n} of 3 stars`,
+    goal02a: 'Lower average step latency than the default',
+    goal02b: 'Less rank idle time than the default',
     sourceLink: 'Source code', sourceSynthetic: 'Synthetic routing · All results are simulated',
   },
 };

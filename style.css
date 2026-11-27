@@ -95,6 +95,23 @@ fieldset input:focus-visible + span { outline: 2px solid var(--green); outline-o
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; }
 .fine { margin-top: 10px; }
+/* Duty roster: stars under the case links, and the diagnosis block in a debrief. */
+.cases .case { display: flex; flex-direction: column; }
+.case-stars { padding: 1px 8px 2px; font-size: 10px; line-height: 1; letter-spacing: .2em; }
+.case-stars .on { color: var(--green); }
+.case-stars .off { color: var(--line); }
+.diagnosis { margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; background: #0f171a; padding: 10px 12px; }
+.diag-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; }
+.diag-head b { font-size: 13px; }
+.diag-stars { color: var(--green); font-size: 15px; letter-spacing: .15em; }
+.diag-stars .off { color: var(--line); }
+.diag-note { color: var(--muted); font-size: 12px; }
+.diag-goals { display: grid; gap: 3px; margin: 7px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.diag-goals li { display: flex; align-items: baseline; gap: 8px; }
+.diag-goals b { width: 1em; flex: none; }
+.diag-goals .met b { color: var(--green); }
+.diag-goals .missed b { color: var(--orange); }
+.diag-goals i { font-style: normal; font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: var(--muted); margin-left: auto; }
 footer { padding: 17px 0; flex-wrap: wrap; }
 .case-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 12px; }
 .case-tools button { border-color: var(--line); }

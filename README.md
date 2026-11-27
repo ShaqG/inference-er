@@ -24,7 +24,7 @@ The demo shows Case 03, one of the four: the same draft length goes from helping
 [![Case 03 · Second Opinion. Drafting speeds up code completion and slows down the 256-request peak.](assets/case-03-en.webp)](https://shaqg.github.io/inference-er/spec/)
 [![Case 04 · P/D Split. Latency charts against the SLO lines while the eight GPUs run with their roles.](assets/case-04-en.webp)](https://shaqg.github.io/inference-er/pd/)
 
-Each case replays the same workload and compares your run against a default policy. To play offline, download the repository and open [Scheduling](index.html), [MoE Triage](triage/index.html), [Second Opinion](spec/index.html), or [P/D Split](pd/index.html) in a browser. No installation or account is required.
+Each case replays the same workload and compares your run against a default policy. Each case earns up to three stars, and your best results stay in this browser. To play offline, download the repository and open [Scheduling](index.html), [MoE Triage](triage/index.html), [Second Opinion](spec/index.html), or [P/D Split](pd/index.html) in a browser. No installation or account is required.
 
 ## CASE 01 · Scheduling
 
