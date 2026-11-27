@@ -20,7 +20,7 @@ button:disabled { cursor: default; opacity: .6; }
 [hidden] { display: none !important; }
 .shell { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
 .top { border-bottom: 1px solid var(--line); }
-.top-inner { min-height: 59px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.top-inner { min-height: 59px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding-block: 6px; }
 .brand, .eyebrow, .axis, .chip, footer {
   font: 700 11px/1.5 ui-monospace, Consolas, monospace;
   letter-spacing: .10em;
@@ -29,6 +29,9 @@ button:disabled { cursor: default; opacity: .6; }
 .brand b { color: var(--green); font-size: 19px; }
 .eyebrow, .axis, footer { color: var(--muted); }
 .languages { display: flex; gap: 4px; }
+.cases { display: flex; gap: 4px; margin-right: auto; margin-left: 20px; }
+.cases a { padding: 5px 8px; border: 1px solid transparent; border-radius: 5px; color: var(--muted); font: 700 11px/1.5 ui-monospace, Consolas, monospace; letter-spacing: .10em; text-decoration: none; }
+.cases a[aria-current="page"], .cases a:hover { color: var(--green); border-color: var(--line); }
 .languages button, .case-tools button { color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 5px 8px; }
 .languages [aria-pressed="true"], .languages button:hover, .case-tools button:hover { color: var(--green); border-color: var(--line); }
 .hero { display: grid; grid-template-columns: 1fr minmax(230px, 325px); align-items: center; gap: 30px; padding: 38px 0 30px; }
