@@ -4,11 +4,11 @@ English · [简体中文](README.zh-CN.md)
 
 You're on call for an LLM serving stack. In four 60-second browser games, decide which requests to prioritize, where to place MoE experts, how far a draft model should speculate, and how many GPUs to give to prefill or decode.
 
-**[Play online](https://shaqg.github.io/inference-er/)** · [Jump to speculative decoding](https://shaqg.github.io/inference-er/spec/)
+**[Play online](https://shaqg.github.io/inference-er/)** · [Pick a case](#pick-a-case)
 
 [![Case 03 demo. Eight draft tokens speed up code completion, then slow down decoding at 256 concurrent requests. Switching drafting off returns to baseline.](assets/case-03-demo.gif)](https://shaqg.github.io/inference-er/spec/)
 
-In the demo, the same draft length goes from helping code completion to slowing down decode at **256 concurrent requests**. The game switches traffic mid-run so you can change your policy and see the result. All workloads and metrics are simulated.
+The demo shows Case 03, one of the four: the same draft length goes from helping code completion to slowing down decode at **256 concurrent requests**. Every case switches traffic mid-run, so you can change your policy and watch the result. All workloads and metrics are simulated.
 
 ## Pick a case
 
@@ -91,10 +91,23 @@ Token matches are independent and identical for every request, while real accept
 
 ### How the simulation works
 
-Eight GPUs serve one model. By default every GPU prefills and decodes, and prefill goes first: whatever share of a second the prompts take is lost to decoding, so every token generated in that second is slower. After a split the first GPUs only prefill and the rest only decode, and the change applies from the next second. Requests arrive per second from a Poisson distribution, with prompt and output lengths drawn uniformly, and every replay reuses the same draws. Prefill is first come, first served across the prefill GPUs at 0.08 ms per prompt token, and a prompt that is not finished continues in the next second. Decode steps run back to back for the rest of the second, and a step takes hypot(14 ms, 0.16 ms × requests per decode GPU). A request starts decoding once its prompt is done and its whole context fits in the KV room of the decode GPUs, 150,000 tokens each. When the decode pool shrinks, the requests admitted last pause until room frees up. A request is on time when its first token arrives within 1 s and its output tokens come at most 20 ms apart on average. A request still waiting for its first token counts as late.
+Eight GPUs serve one model. By default every GPU prefills and decodes, and prefill goes first: whatever share of a second the prompts take is lost to decoding, so every token generated in that second is slower. After a split the first GPUs only prefill and the rest only decode, and the change applies from the next second. Requests arrive per second from a Poisson distribution, with prompt and output lengths drawn uniformly, and every replay reuses the same draws. Prefill is first come, first served across the prefill GPUs at 0.08 ms per prompt token, and a prompt that is not finished continues in the next second. Decode steps run back to back for the rest of the second, and a step takes `hypot(14 ms, 0.16 ms × requests per decode GPU)`. A request starts decoding once its prompt is done and its whole context fits in the KV room of the decode GPUs, 150,000 tokens each. When the decode pool shrinks, the requests admitted last pause until room frees up. A request is on time when its first token arrives within 1 s and its output tokens come at most 20 ms apart on average. A request still waiting for its first token counts as late.
 
 The cost model is sized from a reference deployment, not measured: a 32B dense model with FP8 weights (about 33 GB) and a BF16 KV cache of 256 KiB per token (64 layers, 8 KV heads, head size 128), one copy per H100 80GB. Prefill takes 64 GFLOPs per token at about 800 TFLOPS effective, which is 0.08 ms, or about 12,500 tokens per second per GPU. Reading the weights for a decode step takes about 14 ms at about 2.4 TB/s, and each request in the batch adds about 0.16 ms of compute. Of the about 76 GB usable per GPU, about 40 GB is left for KV after the weights and a few GB for everything else, room for about 150,000 tokens.
 
 Left out: the KV transfer from a prefill GPU to a decode GPU (a 5,000-token prompt is about 1.3 GB, on the order of 10 ms over NVLink against a first-token latency of hundreds of milliseconds), the migration when a GPU changes role, chunked prefill, attention cost, prefix caching, and any limit on batch size other than KV room. Above 30 arrivals per second, the draw is normal with the same mean and variance instead of Poisson. With the default, 11% of requests are on time. Changing the split with the traffic keeps all of them on time.
 
-Run the workload and simulation checks for all four cases locally with `node --test`.
+## Development
+
+Every case is a plain JavaScript page with no build step and no dependencies, and it opens straight from `file://`. CASE 01 lives in the repository root. Each other case has the same files in its own folder: `triage/`, `spec/`, and `pd/`.
+
+- `case.js` holds the workload, fixed so that every replay sees the same requests.
+- `sim.js` holds the simulation and its cost model. It also loads in Node for the tests.
+- `game.js` and `strings.js` render the page in Chinese and English.
+- `style.css` and `locale.js` are shared by all four cases.
+
+Run the workload and simulation checks for all four cases with `node --test` from the repository root. It needs Node.js and nothing else.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
