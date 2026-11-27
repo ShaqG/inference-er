@@ -2,26 +2,14 @@
 
 const $ = id => document.getElementById(id);
 const { case02 } = ERCases;
-const languageQuery = new URLSearchParams(location.search).get('lang');
-let language = Object.hasOwn(strings, languageQuery) ? languageQuery : savedLanguage();
+let language = ERLocale.initial;
 let baseline = ER.baseline();
 let run = ER.newRun();
 let timer = null;
 let restarted = false;
 
-function savedLanguage() {
-  try {
-    const saved = localStorage.getItem('inference-er-language');
-    if (Object.hasOwn(strings, saved)) return saved;
-  } catch {
-    // The game also runs from a local file with storage disabled.
-  }
-  return navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
-}
-
 function translate() {
   const t = strings[language];
-  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
   document.title = t.pageTitle;
   document.querySelector('meta[name="description"]').content = t.intro;
   for (const element of document.querySelectorAll('[data-text]')) {
@@ -32,6 +20,7 @@ function translate() {
   }
   $('chart').setAttribute('aria-label', t.chart);
   render();
+  ERLocale.apply(language);
 }
 
 function settings() {
@@ -208,11 +197,7 @@ $('rebalance').addEventListener('click', () => {
 for (const button of document.querySelectorAll('[data-language]')) {
   button.addEventListener('click', () => {
     language = button.dataset.language;
-    try {
-      localStorage.setItem('inference-er-language', language);
-    } catch {
-      // Keep the chosen language for this page when storage is unavailable.
-    }
+    ERLocale.select(language);
     translate();
   });
 }
