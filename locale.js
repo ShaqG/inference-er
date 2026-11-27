@@ -16,6 +16,10 @@ const ERLocale = (() => {
 
   function apply(language) {
     root.lang = htmlLanguage(language);
+    for (const button of document.querySelectorAll('[data-language]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.language === language));
+      button.disabled = false;
+    }
     if (override) {
       for (const link of document.querySelectorAll('.cases a')) {
         const target = new URL(link.href);

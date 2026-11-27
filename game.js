@@ -18,9 +18,6 @@ function translate() {
   for (const element of document.querySelectorAll('[data-text]')) {
     element.textContent = t[element.dataset.text];
   }
-  for (const button of document.querySelectorAll('[data-language]')) {
-    button.setAttribute('aria-pressed', String(button.dataset.language === language));
-  }
   $('chart').setAttribute('aria-label', t.chart);
   render();
   ERLocale.apply(language);
