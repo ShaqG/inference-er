@@ -12,11 +12,12 @@
     return { second: 0, history: [] };
   }
 
-  // Tokens the target checks when a request drafts k tokens: the drafts plus one of its own.
+  // The draft runs one step per drafted token, for the whole batch.
   function draftMs(k, batch) {
     return k * (cost.draft + cost.draftToken * batch);
   }
 
+  // The target checks k+1 tokens per request: the drafts plus one of its own.
   function verifyMs(tokens) {
     return cost.target + cost.token * tokens;
   }
