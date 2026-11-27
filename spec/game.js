@@ -62,7 +62,8 @@ function render() {
   const finished = remaining === 0;
   const running = timer !== null;
   const last = run.history[run.second - 1];
-  const batch = case03.steps[Math.min(run.second, ER.duration - 1)].batch;
+  // The note belongs to the latency chart, so it shows the batch of the step that just ran.
+  const batch = case03.steps[Math.max(0, run.second - 1)].batch;
   $('source-note').textContent = t.sourceSynthetic;
   $('state').textContent = finished ? t.finished : running ? t.running : t.idle;
   const phase = last ? t.phases[last.phase] + ' · ' : '';
@@ -97,7 +98,7 @@ function renderReport(result, t) {
   $('report-summary').textContent = t.reportSummary(result.meanSpeedup, result.wasteAll);
   const rows = [
     [t.reportSpeedup, 'meanSpeedup', n => n.toFixed(2) + '×'], [t.reportLength, 'meanLength', n => n.toFixed(2)],
-    [t.reportMs, 'meanMs', n => n.toFixed(1) + ' ms'], [t.reportWaste, 'wasteAll', share],
+    [t.reportWaste, 'wasteAll', share],
   ];
   $('results').replaceChildren();
   for (const [label, key, format] of rows) {
@@ -117,6 +118,7 @@ function renderReport(result, t) {
   $('phases').replaceChildren();
   case03.phases.forEach((phase, index) => {
     const steps = run.history.filter(h => h.phase === index);
+    // A phase keeps one batch size, so its requests are counted step by step.
     const mean = key => steps.reduce((a, s) => a + s[key], 0) / steps.length;
     const speedup = mean('speedup');
     const row = document.createElement('tr');
@@ -124,7 +126,7 @@ function renderReport(result, t) {
     heading.scope = 'row';
     heading.textContent = `${t.phases[index]} · ${t.concurrent(phase.batch)}`;
     row.append(heading);
-    for (const [value, danger] of [[(mean('emitted') / mean('batch')).toFixed(2), false], [speedup.toFixed(2) + '×', speedup < 1]]) {
+    for (const [value, danger] of [[mean('length').toFixed(2), false], [speedup.toFixed(2) + '×', speedup < 1]]) {
       const cell = document.createElement('td');
       cell.textContent = value;
       cell.classList.toggle('danger', danger);

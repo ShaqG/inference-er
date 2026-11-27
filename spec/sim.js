@@ -1,9 +1,10 @@
 (function (root) {
   const { duration, case03 } = typeof module === 'object' ? require('./case.js') : root.ERCases;
   const defaults = { draft: 0 };
-  // Milliseconds per step, sized from a reference deployment: a 70B dense target and a 1B draft,
-  // both in BF16, on 8 A100 80GB with tensor parallel 8. Reading the target's weights (about
-  // 140 GB) takes about 20 ms per step and each verified token adds about 0.15 ms of compute.
+  // Milliseconds per forward pass, sized from a reference deployment: a 70B dense target and a
+  // 1B draft, both in BF16, on 8 A100 80GB with tensor parallel 8. Reading the target's weights
+  // (about 140 GB) takes about 20 ms and each verified token adds about 0.15 ms of compute, so a
+  // target step is bound by weight reads below about 130 tokens and by compute above that.
   // A draft step is a fixed 1 ms of launch and sync overhead plus 0.01 ms per drafted token.
   const cost = { target: 20, token: 0.15, draft: 1, draftToken: 0.01 };
   const lengths = [0, 2, 4, 8];
@@ -12,14 +13,20 @@
     return { second: 0, history: [] };
   }
 
+  // A forward pass takes the larger of its weight-read time and its compute time, with a smooth
+  // knee between the two.
+  function roof(weights, tokens) {
+    return Math.hypot(weights, tokens);
+  }
+
   // The draft runs one step per drafted token, for the whole batch.
   function draftMs(k, batch) {
-    return k * (cost.draft + cost.draftToken * batch);
+    return k * roof(cost.draft, cost.draftToken * batch);
   }
 
   // The target checks k+1 tokens per request: the drafts plus one of its own.
   function verifyMs(tokens) {
-    return cost.target + cost.token * tokens;
+    return roof(cost.target, cost.token * tokens);
   }
 
   // A request keeps drafted tokens up to the first mismatch.
@@ -43,24 +50,25 @@
     const emitted = kept + batch;
     run.history.push({
       k, batch, phase: current.phase, ms: drafting + verifying, drafting, verifying, plain,
-      kept, emitted, speedup: emitted * plain / (batch * (drafting + verifying)),
+      kept, emitted, length: emitted / batch, speedup: emitted * plain / (batch * (drafting + verifying)),
     });
   }
 
   // ms, length, waste and speedup describe the latest step; the other fields describe the run.
+  // Speedup and accepted length are averaged over requests, so each step counts by its batch.
   function stats(run) {
     const h = run.history;
     const last = h[h.length - 1];
-    const mean = key => h.length ? h.reduce((a, s) => a + s[key], 0) / h.length : null;
-    const drafted = h.reduce((a, s) => a + s.k * s.batch, 0);
+    const requests = h.reduce((n, s) => n + s.batch, 0);
+    const drafted = h.reduce((n, s) => n + s.k * s.batch, 0);
     return {
       ms: last ? last.ms : null,
-      length: last ? last.emitted / last.batch : null,
+      length: last ? last.length : null,
       waste: last && last.k ? 1 - last.kept / (last.k * last.batch) : null,
       speedup: last ? last.speedup : null,
-      meanMs: mean('ms'),
-      meanLength: h.length ? h.reduce((a, s) => a + s.emitted / s.batch, 0) / h.length : null,
-      meanSpeedup: mean('speedup'),
+      meanMs: h.length ? h.reduce((a, s) => a + s.ms, 0) / h.length : null,
+      meanLength: h.length ? h.reduce((a, s) => a + s.emitted, 0) / requests : null,
+      meanSpeedup: h.length ? h.reduce((a, s) => a + s.speedup * s.batch, 0) / requests : null,
       wasteAll: drafted ? 1 - h.reduce((a, s) => a + s.kept, 0) / drafted : null,
     };
   }

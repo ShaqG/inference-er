@@ -2,14 +2,14 @@
   const duration = 60;
   // The longest draft a policy can ask for.
   const slots = 8;
-  const seed = 20261154;
+  const seed = 20261337;
   // batch: requests decoding together. accept: chance that a drafted token matches the target.
-  // Chat and the evening peak have the same acceptance, so only the batch changes between them.
+  // Only the peak changes the batch, so chat and peak differ in nothing but their size.
   const phases = [
     { until: 15, batch: 16, accept: 0.75 },
-    { until: 35, batch: 24, accept: 0.92 },
+    { until: 35, batch: 16, accept: 0.92 },
     { until: 47, batch: 256, accept: 0.75 },
-    { until: 60, batch: 24, accept: 0.45 },
+    { until: 60, batch: 16, accept: 0.45 },
   ];
 
   function mulberry32(a) {

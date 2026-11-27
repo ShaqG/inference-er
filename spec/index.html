@@ -66,7 +66,7 @@
       <div class="control"><div class="control-title" data-text="draft">草稿长度 k</div><p data-text="draftHelp">小模型为每条请求先写 k 个 token，大模型一次验证 k+1 个。写得多可能多收，但每多写一个都要多花时间。</p>
         <fieldset><legend class="sr" data-text="draft">草稿长度 k</legend><label><input type="radio" name="draft" value="0" checked><span data-text="off">关</span></label><label><input type="radio" name="draft" value="2"><span>2</span></label><label><input type="radio" name="draft" value="4"><span>4</span></label><label><input type="radio" name="draft" value="8"><span>8</span></label></fieldset>
       </div>
-      <div class="hint"><b data-text="hintTitle">值班提示</b><p data-text="hint">第 16 秒切到代码补全，第 36 秒进入晚高峰（并发 256），第 48 秒是创意写作。并发小时多验证几个 token 几乎不加时间；并发大了，每多验证一个 token 都要真算一遍。草稿被拒得越多，写得越长越亏。</p></div>
+      <div class="hint"><b data-text="hintTitle">值班提示</b><p data-text="hint">第 16 秒切到代码补全，第 36 秒进入晚高峰（并发 256），第 48 秒是创意写作。并发小时，多验证几个草稿 token 花不了多少时间；并发大了，每多验证一个都要真算一遍。草稿被拒得越多，写得越长越亏。</p></div>
     </aside>
   </div>
   <section id="report" class="panel report" hidden aria-labelledby="report-title">
@@ -75,7 +75,7 @@
     <table><thead><tr><th scope="col" data-text="metric">指标</th><th scope="col" data-text="thisRun">本轮</th><th scope="col" data-text="baseline">默认策略</th><th scope="col" data-text="change">变化</th></tr></thead><tbody id="results"></tbody></table>
     <h3 data-text="byPhase">分阶段</h3>
     <table><thead><tr><th scope="col" data-text="phase">阶段</th><th scope="col" data-text="reportLength">平均接受长度</th><th scope="col" data-text="reportSpeedup">平均加速比</th></tr></thead><tbody id="phases"></tbody></table>
-    <p class="fine" data-text="reportNote">默认策略关闭投机解码。加速比是同一步里每条请求的产出速度与不开投机时之比，按步平均；接受长度是每条请求每步产出的 token 数。</p>
+    <p class="fine" data-text="reportNote">默认策略关闭投机解码。加速比是同一步里每条请求的产出速度与不开投机时之比，接受长度是每条请求每步产出的 token 数。两者都按各步的并发数加权，所以高峰里的每条请求都算进去。</p>
   </section>
   <footer>
     <div class="case-tools"><a href="https://github.com/ShaqG/inference-er/tree/main/spec" data-text="sourceLink">源代码</a></div>

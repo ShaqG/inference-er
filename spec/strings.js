@@ -29,9 +29,9 @@ const strings = {
     draft: '草稿长度 k', off: '关',
     draftHelp: '小模型为每条请求先写 k 个 token，大模型一次验证 k+1 个。写得多可能多收，但每多写一个都要多花时间。',
     hintTitle: '值班提示',
-    hint: '第 16 秒切到代码补全，第 36 秒进入晚高峰（并发 256），第 48 秒是创意写作。并发小时多验证几个 token 几乎不加时间；并发大了，每多验证一个 token 都要真算一遍。草稿被拒得越多，写得越长越亏。',
+    hint: '第 16 秒切到代码补全，第 36 秒进入晚高峰（并发 256），第 48 秒是创意写作。并发小时，多验证几个草稿 token 花不了多少时间；并发大了，每多验证一个都要真算一遍。草稿被拒得越多，写得越长越亏。',
     report: '本轮复盘', metric: '指标', thisRun: '本轮', baseline: '默认策略', change: '变化',
-    reportSpeedup: '平均加速比', reportLength: '平均接受长度', reportMs: '平均步延迟',
+    reportSpeedup: '平均加速比', reportLength: '平均接受长度',
     reportWaste: '草稿浪费率', byPhase: '分阶段', phase: '阶段',
     reportSummary: (speedup, waste) => {
       const gap = Math.round((speedup - 1) * 100);
@@ -40,7 +40,7 @@ const strings = {
       return waste === null ? '全程没有开启投机解码，与默认策略一致。'
         : `${head}，起草的 token 有 ${(waste * 100).toFixed(1)}% 被拒绝。`;
     },
-    reportNote: '默认策略关闭投机解码。加速比是同一步里每条请求的产出速度与不开投机时之比，按步平均；接受长度是每条请求每步产出的 token 数。',
+    reportNote: '默认策略关闭投机解码。加速比是同一步里每条请求的产出速度与不开投机时之比，接受长度是每条请求每步产出的 token 数。两者都按各步的并发数加权，所以高峰里的每条请求都算进去。',
     sourceLink: '源代码', sourceSynthetic: '合成草稿 · 所有结果为模拟值',
   },
   en: {
@@ -71,9 +71,9 @@ const strings = {
     draft: 'Draft length k', off: 'Off',
     draftHelp: 'The draft model writes k tokens for every request and the target checks k+1 in one pass. Longer drafts can land more tokens, and every extra one costs time.',
     hintTitle: 'On-call tip',
-    hint: 'Traffic switches to code completion at second 16, hits a peak of 256 concurrent requests at second 36, and turns to creative writing at second 48. With a small batch, verifying a few more tokens is nearly free. With a large batch, every extra token is real compute. The more drafts get rejected, the more a long draft costs.',
+    hint: 'Traffic switches to code completion at second 16, hits a peak of 256 concurrent requests at second 36, and turns to creative writing at second 48. With a small batch, verifying a few extra tokens costs little. With a large batch, every extra token is real compute. The more drafts get rejected, the more a long draft costs.',
     report: 'Debrief', metric: 'Metric', thisRun: 'This run', baseline: 'Default', change: 'Change',
-    reportSpeedup: 'Mean speedup', reportLength: 'Mean accepted length', reportMs: 'Mean step latency',
+    reportSpeedup: 'Mean speedup', reportLength: 'Mean accepted length',
     reportWaste: 'Drafts rejected', byPhase: 'By phase', phase: 'Phase',
     reportSummary: (speedup, waste) => {
       const gap = Math.round((speedup - 1) * 100);
@@ -82,7 +82,7 @@ const strings = {
       return waste === null ? 'Speculation stayed off for the whole run, same as the default policy.'
         : `${head}, with ${(waste * 100).toFixed(1)}% of the drafted tokens rejected.`;
     },
-    reportNote: 'The default keeps speculation off. Speedup compares a step\'s output per request with the same step without speculation, averaged over steps. Accepted length is the tokens a request gets per step.',
+    reportNote: 'The default keeps speculation off. Speedup compares a step\'s output per request with the same step without speculation, and accepted length is the tokens a request gets per step. Both are weighted by the batch of each step, so every request in the peak counts.',
     sourceLink: 'Source code', sourceSynthetic: 'Synthetic drafts · All results are simulated',
   },
 };
