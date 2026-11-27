@@ -133,6 +133,7 @@ function render() {
   $('ratio').textContent = last ? last.ratio.toFixed(2) + '×' : '—';
   $('ratio').classList.toggle('danger', !last || last.ratio >= 1.25);
   $('idle').textContent = percent(stats.idle);
+  $('idle').classList.toggle('danger', !last || stats.idle >= .25);
   $('moved').textContent = Math.round(run.movedMs) + ' ms';
   const peak = Math.max(16, ...run.history.map(h => h.ms));
   const points = run.history.map((h, i) => [(i + 1) * 10, 129 - h.ms * 114 / peak]);
@@ -140,7 +141,7 @@ function render() {
   $('line').setAttribute('points', line);
   $('area').setAttribute('d', points.length ? 'M' + line.replaceAll(' ', ' L') + ' L' + (points.length * 10) + ',129 Z' : '');
   $('marks').setAttribute('d', run.history.flatMap((h, i) => h.moves ? ['M' + (i + 1) * 10 + ' 15V129'] : []).join(' '));
-  $('moving-note').textContent = last && last.moves ? t.movedNote(last.moves) : '';
+  $('moving-note').textContent = run.lastMove ? t.movedNote(run.lastMove.moves, run.lastMove.second) : '';
   renderRanks(last, t);
   renderExperts(last);
   $('rebalance').disabled = !running || finished || run.moving;

@@ -83,6 +83,9 @@ test('redundant experts spread a dominant expert and cost weight moves and memor
   assert.ok(run.placement.every(rank => rank.length === case02.experts / case02.ranks + 1));
   assert.ok(mean(run, 46, 60, 'ratio') < 1.5);
   assert.ok(mean(runCase(undefined, [16]), 46, 60, 'ratio') > 1.9);
+  const later = second => ({ redundant: second >= 39 });
+  assert.equal(runCase(later, [16, 43, 46, 50]).movedMs, runCase(later, [16, 43]).movedMs);
+  assert.equal(runCase(() => ({ redundant: true }), [5]).movedMs, 0);
   const off = runCase(second => ({ redundant: second >= 45 && second < 52 }), [16, 45, 52]);
   assert.equal(simulation.stats(off).replicas, 0);
   assert.ok(off.placement.every(rank => rank.length === case02.experts / case02.ranks));

@@ -14,7 +14,7 @@
       second: 0, history: [], seen: [],
       recent: new Array(work.experts).fill(0),
       placement: work.placement.map(rank => rank.slice()),
-      moving: false, rebalances: 0, movedMs: 0,
+      moving: false, rebalances: 0, movedMs: 0, lastMove: null,
     };
   }
 
@@ -132,6 +132,12 @@
       [out[high][best.ai], out[low][best.bi]] = [out[low][best.bi], out[high][best.ai]];
       moves += 2;
     }
+    // Keep the current layout unless the new one is clearly better. Turning redundancy off always applies.
+    const cleanup = !redundant && placement.flat().length > work.experts;
+    const before = Math.max(...rankLoads(placement, load, copyCounts(placement, work)));
+    if (!cleanup && Math.max(...rankLoads(out, load, copies)) > before * (1 - gain)) {
+      return { placement, copies: copyCounts(placement, work), moves: 0 };
+    }
     return { placement: out, copies, moves };
   }
 
@@ -147,6 +153,7 @@
       run.moving = false;
       run.rebalances++;
       run.movedMs += moves * cost.move;
+      if (moves) run.lastMove = { second: now, moves };
     }
     const rows = arriving(run.placement, current.counts, work);
     const slowest = Math.max(...rows);
