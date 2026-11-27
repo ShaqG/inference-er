@@ -2,13 +2,23 @@
 
 English · [简体中文](README.zh-CN.md)
 
-A series of 60-second browser games about serving large language models. Each case hands you a service on the edge and tests one trade-off at a time. Everything runs offline in a browser and all results are simulated.
+You're on call for an LLM serving stack. In three 60-second browser games, decide which requests to prioritize, where to place MoE experts, and how far a draft model should speculate.
 
-- **CASE 01 · Scheduling** · [Play online](https://shaqg.github.io/inference-er/?lang=en) · [Open offline](index.html) · A surge of long prompts is making short chats time out. Take over the service and try scheduling policies on the same workload.
-- **CASE 02 · MoE Triage** · [Play online](https://shaqg.github.io/inference-er/triage/?lang=en) · [Open offline](triage/index.html) · A burst of tokens is heading for the same few experts, and their rank is slowing every step. Re-place the experts and decide when to pay for redundant ones.
-- **CASE 03 · Second Opinion** · [Play online](https://shaqg.github.io/inference-er/spec/?lang=en) · [Open offline](spec/index.html) · A small draft model writes tokens for every request and the target model checks them in one pass. Set the draft length as the traffic changes.
+**[Play online](https://shaqg.github.io/inference-er/)** · [Jump to speculative decoding](https://shaqg.github.io/inference-er/spec/)
 
-To play offline, download the repository and open any of the `index.html` files.
+[![Case 03 demo. Eight draft tokens speed up code completion, then slow down decoding at 256 concurrent requests. Switching drafting off returns to baseline.](assets/case-03-demo.gif)](https://shaqg.github.io/inference-er/spec/)
+
+In the demo, the same draft length goes from helping code completion to slowing down decode at **256 concurrent requests**. The game switches traffic mid-run so you can change your policy and see the result. All workloads and metrics are simulated.
+
+## Pick a case
+
+| Case | Your decision | Play |
+| --- | --- | --- |
+| **01 · Scheduling** | Long prompts are piling up. Can you protect short chats while keeping enough capacity for long requests? | [Play case 01](https://shaqg.github.io/inference-er/) |
+| **02 · MoE Triage** | A few experts are slowing down all ranks. When should you move weights, and when should you add a replica? | [Play case 02](https://shaqg.github.io/inference-er/triage/) |
+| **03 · Second Opinion** | Drafting can produce more tokens per target pass. When does the cost of verification make a shorter draft worthwhile? | [Play case 03](https://shaqg.github.io/inference-er/spec/) |
+
+Each case replays the same workload and compares your run against a default policy. To play offline, download the repository and open [Scheduling](index.html), [MoE Triage](triage/index.html), or [Second Opinion](spec/index.html) in a browser. No installation or account is required.
 
 ## CASE 01 · Scheduling
 

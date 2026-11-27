@@ -2,13 +2,23 @@
 
 [English](README.md) · 简体中文
 
-一系列 60 秒的 LLM 推理小游戏。每一局都把一个濒临过载的服务交给你，每次只考一个权衡。全部在浏览器里离线运行，所有结果均为模拟值。
+你是 LLM 推理服务的值班工程师。三关，每关 60 秒。挑选先处理的请求，给 MoE 专家换位置，再决定 draft model 每轮写几个 token。
 
-- **CASE 01 · 调度** · [在线试玩](https://shaqg.github.io/inference-er/?lang=zh) · [离线打开](index.html) · 长 Prompt 突然涌入，短聊天开始超时。接管服务，在同一批请求上比较调度策略。
-- **CASE 02 · MoE 分诊台** · [在线试玩](https://shaqg.github.io/inference-er/triage/?lang=zh) · [离线打开](triage/index.html) · 一批 token 涌向同几个专家，所在的 rank 拖慢了每一步。重新安放专家，并决定何时为冗余专家付出代价。
-- **CASE 03 · 投机代诊** · [在线试玩](https://shaqg.github.io/inference-er/spec/?lang=zh) · [离线打开](spec/index.html) · 小模型替每条请求先写 token，大模型一次验证。随着流量变化，决定草稿写多长。
+**[在线试玩](https://shaqg.github.io/inference-er/)** · [直达投机解码关](https://shaqg.github.io/inference-er/spec/)
 
-下载仓库后打开任一 `index.html`，即可离线游玩。
+[![第三关演示。同样起草 8 个 token，代码补全加速，到了 256 并发却变慢，关闭草稿后回到基准速度。](assets/case-03-demo.gif)](https://shaqg.github.io/inference-er/spec/)
+
+演示里同样起草 8 个 token，代码补全时能加速，到了 **256 并发**的高峰却成了负担。你可以在流量切换时调整策略，观察延迟和吞吐的变化。关卡负载和结果均为模拟值。
+
+## 选择关卡
+
+| 关卡 | 你要做的决定 | 试玩 |
+| --- | --- | --- |
+| **01 · 调度** | 长 Prompt 突然涌入，怎么保住短聊天的响应时间，又给长请求留出算力？ | [试玩第一关](https://shaqg.github.io/inference-er/) |
+| **02 · MoE 分诊台** | 热门专家拖慢了整个 batch，什么时候该搬权重，什么时候该加副本？ | [试玩第二关](https://shaqg.github.io/inference-er/triage/) |
+| **03 · 投机代诊** | 一次 target 前向可以多生成几个 token。验证成本高到什么时候值得缩短草稿？ | [试玩第三关](https://shaqg.github.io/inference-er/spec/) |
+
+每次重开都会回放同一批负载，复盘可以和默认策略比较。也可下载仓库，在浏览器离线打开[调度](index.html)、[MoE 分诊台](triage/index.html)或[投机代诊](spec/index.html)，无需安装或登录。
 
 ## CASE 01 · 调度
 
