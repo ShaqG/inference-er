@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1214">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%230c1214'/%3E%3Cpath%20d='M32%2014v36M14%2032h36'%20stroke='%23aaf5bf'%20stroke-width='8'%20stroke-linecap='round'/%3E%3C/svg%3E">
   <meta name="description" content="Long prompts are flooding the service and short chats are timing out. You have 60 seconds to take over.">
   <title>Inference ER | LLM Scheduling Game</title>
   <script src="locale.js"></script>
@@ -63,7 +65,7 @@
       </div>
       <label class="control switch"><div><div class="control-title" data-text="reserve">Prioritize short requests</div><p data-text="reserveHelp">Short requests go first in both phases. Long requests may wait longer.</p></div><input id="reserve" type="checkbox"></label>
       <label class="control switch"><div><div class="control-title" data-text="limit">Limit long requests</div><p data-text="limitHelp">Reject new long requests when two are already in flight.</p></div><input id="limit" type="checkbox"></label>
-      <div class="hint"><b data-text="hintTitle">On-call tip</b><p id="hint">The surge starts at second 8. Watch the backlog, timeouts, and rejections as you try different policies.</p></div>
+      <div class="hint"><b data-text="hintTitle">On-call tip</b><p id="hint">Long prompts arrive in waves from second 8, short chats come every second from 17 to 28, and more long prompts follow from second 36. The budget is shared: the more requests decode, the less is left for prefill, and new requests wait for their first token. Protect the short requests first, then decide how many long ones to admit.</p></div>
     </aside>
   </div>
   <section id="report" class="panel report" hidden aria-labelledby="report-title">

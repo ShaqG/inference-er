@@ -117,9 +117,9 @@ function render() {
   $('progress').style.width = remaining / ER.duration * 100 + '%';
   $('ms').textContent = last ? last.ms.toFixed(1) : '—';
   $('ratio').textContent = last ? last.ratio.toFixed(2) + '×' : '—';
-  $('ratio').classList.toggle('danger', !last || last.ratio >= 1.25);
+  $('ratio').classList.toggle('danger', !!last && last.ratio >= 1.25);
   $('idle').textContent = percent(stats.idle);
-  $('idle').classList.toggle('danger', !last || stats.idle >= .25);
+  $('idle').classList.toggle('danger', !!last && stats.idle >= .25);
   $('moved').textContent = Math.round(run.movedMs) + ' ms';
   const peak = Math.max(16, ...run.history.map(h => h.ms));
   const points = run.history.map((h, i) => [(i + 1) * 10, 129 - h.ms * 114 / peak]);
@@ -130,7 +130,7 @@ function render() {
   $('moving-note').textContent = run.lastMove ? t.movedNote(run.lastMove.moves, run.lastMove.second) : '';
   renderRanks(last, t);
   renderExperts(last);
-  $('rebalance').disabled = !running || finished || run.moving;
+  $('rebalance').disabled = !running || finished || run.moving || !run.second;
   $('pending').textContent = run.moving ? t.pending : '';
   $('report').hidden = !finished;
   if (finished) renderReport(stats, t);
@@ -140,7 +140,7 @@ function renderReport(result, t) {
   $('report-summary').textContent = t.reportSummary(result.meanMs, baseline.meanMs, result.idleAll, baseline.idleAll,
     result.movedMs, result.replicas / case02.experts);
   const rows = [
-    [t.reportMean, 'meanMs', n => n.toFixed(1) + ' ms'], [t.reportRatio, 'ratioAll', n => n.toFixed(2)],
+    [t.reportMean, 'meanMs', n => n.toFixed(1) + ' ms'], [t.reportRatio, 'ratioAll', n => n.toFixed(2) + '×'],
     [t.reportIdle, 'idleAll', n => (n * 100).toFixed(1) + '%'],
     [t.reportMoved, 'movedMs', n => Math.round(n) + ' ms'],
     [t.reportMemory, 'replicas', n => (n ? '+' : '') + Math.round(n / case02.experts * 100) + '%'],

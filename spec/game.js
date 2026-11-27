@@ -30,7 +30,7 @@ const share = value => value === null ? '—' : (value * 100).toFixed(1) + '%';
 // The step's latency as one bar: drafting, then verifying. The tick marks the same step without
 // speculation. Only the latest step is shown, so the bars are sized against its own latency.
 function renderSplit(last, t) {
-  const slow = last && last.speedup < 1;
+  const slow = !!last && last.speedup < 1;
   $('split').classList.toggle('slow', slow);
   $('draft').style.width = last ? last.drafting / last.ms * 100 + '%' : '0%';
   $('verify').style.width = last ? last.verifying / last.ms * 100 + '%' : '0%';

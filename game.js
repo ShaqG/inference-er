@@ -56,7 +56,7 @@ function render() {
   $('progress').style.width = remaining / ER.duration * 100 + '%';
   $('done').textContent = stats.done;
   $('timeout').textContent = stats.timeout;
-  $('p95').textContent = stats.shortP95 === null ? '—' : stats.shortP95 + 's';
+  $('p95').textContent = stats.shortP95 === null ? '—' : stats.shortP95 + ' s';
   $('rate').textContent = stats.rate.toFixed(1);
   $('pending').textContent = t.pending(stats.pending, stats.rejected);
   const peak = Math.max(16, ...run.history);

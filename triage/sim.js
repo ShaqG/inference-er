@@ -52,69 +52,135 @@
     return Math.max(...sums);
   }
 
-  // Copies per expert: the spare slots go to the hottest expert, by per-copy load, split over
-  // the hottest two, or one each to the hottest four. Keep the policy that packs best.
+  // Copies per expert: the spare slots go to the hottest experts by per-copy load, to the hottest
+  // two, or one each to the hottest four. An expert never gets more than one copy per rank.
+  // Keep the policy that packs best.
   function replication(load, redundant, work) {
     const copies = new Array(work.experts).fill(1);
     if (!redundant) return copies;
     const order = load.map((n, e) => [n, e]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).map(([, e]) => e);
     const policies = [];
-    for (const spread of [1, 2, 4]) {
+    for (const spread of [2, 4]) {
       const policy = new Array(work.experts).fill(1);
       for (let i = 0; i < work.ranks; i++) policy[order[i % spread]]++;
       policies.push(policy);
     }
-    const greedy = new Array(work.experts).fill(1);
+    const hottest = new Array(work.experts).fill(1);
     for (let i = 0; i < work.ranks; i++) {
-      const hot = order.reduce((a, b) => load[a] / greedy[a] > load[b] / greedy[b] ? a : b);
-      greedy[hot]++;
+      const open = order.filter(e => hottest[e] < work.ranks);
+      hottest[open.reduce((a, b) => load[a] / hottest[a] > load[b] / hottest[b] ? a : b)]++;
     }
-    policies.push(greedy);
+    policies.push(hottest);
     const slots = work.experts / work.ranks + 1;
     return policies.reduce((best, policy) =>
       packed(policy, load, slots, work.ranks) < packed(best, load, slots, work.ranks) ? policy : best);
   }
 
+  // A rank for every new copy, or -1 for a copy that no rank can take. A copy only lands on a
+  // rank without the expert and with a free slot. The assignments are searched together: the
+  // most copies placed win, then the lightest peak, then the most even ranks.
+  function place(placement, pending, load, slots) {
+    const free = placement.map(rank => slots - rank.length);
+    const taken = placement.map(() => []);
+    const hosts = e => placement.filter(rank => rank.includes(e)).length + taken.filter(rank => rank.includes(e)).length;
+    const choice = [];
+    let best = null;
+    const walk = index => {
+      if (index === pending.length) {
+        const loads = placement.map((rank, r) => rank.concat(taken[r]).reduce((sum, e) => sum + load[e] / hosts(e), 0));
+        const peak = Math.max(...loads);
+        const spread = loads.reduce((a, b) => a + b * b, 0);
+        const placed = choice.filter(r => r >= 0).length;
+        if (!best || placed > best.placed || placed === best.placed && (peak < best.peak || peak === best.peak && spread < best.spread)) {
+          best = { placed, peak, spread, choice: choice.slice() };
+        }
+        return;
+      }
+      const e = pending[index];
+      for (let r = 0; r <= placement.length; r++) {
+        const fits = r < placement.length && taken[r].length < free[r] && !placement[r].includes(e) && !taken[r].includes(e);
+        if (r < placement.length && !fits) continue;
+        if (fits) taken[r].push(e);
+        choice.push(fits ? r : -1);
+        walk(index + 1);
+        if (fits) taken[r].pop();
+        choice.pop();
+      }
+    };
+    walk(0);
+    return best.choice;
+  }
+
+  // Drop the copies beyond the plan. Every choice is searched: the fewest ranks over their slots
+  // win, then the most even ranks, then the lightest peak. Dropping a copy moves no weights.
+  function drop(out, extra, load, slots, work) {
+    const choice = [];
+    let best = null;
+    const walk = index => {
+      if (index === extra.length) {
+        const sizes = out.map(rank => rank.length);
+        const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+        const score = [
+          sizes.reduce((n, size) => n + Math.max(0, size - slots), 0),
+          sizes.reduce((n, size) => n + (size - mean) ** 2, 0),
+          Math.max(...rankLoads(out, load, copyCounts(out, work))),
+        ];
+        if (!best) {
+          best = { score, choice: choice.slice() };
+        } else {
+          const first = score.findIndex((v, i) => v !== best.score[i]);
+          if (first >= 0 && score[first] < best.score[first]) best = { score, choice: choice.slice() };
+        }
+        return;
+      }
+      const e = extra[index];
+      for (let r = 0; r < out.length; r++) {
+        const at = out[r].indexOf(e);
+        if (at < 0) continue;
+        out[r].splice(at, 1);
+        choice.push(r);
+        walk(index + 1);
+        out[r].splice(at, 0, e);
+        choice.pop();
+      }
+    };
+    walk(0);
+    best.choice.forEach((r, i) => out[r].splice(out[r].indexOf(extra[i]), 1));
+  }
+
   // Re-place experts from observed loads. Every new copy and every swapped pair costs weight moves.
   function plan(placement, load, redundant, work) {
-    const copies = replication(load, redundant, work);
+    let copies = replication(load, redundant, work);
     const out = placement.map(rank => rank.slice());
     const slots = work.experts / work.ranks + (redundant ? 1 : 0);
     const count = e => out.reduce((n, rank) => n + rank.filter(x => x === e).length, 0);
     let moves = 0;
-    for (let e = 0; e < work.experts; e++) {
-      while (count(e) > copies[e]) {
-        const loads = rankLoads(out, load, copies);
-        let host = 0;
-        for (let r = 1; r < work.ranks; r++) {
-          if (out[r].includes(e) && (!out[host].includes(e) || loads[r] > loads[host])) host = r;
-        }
-        out[host].splice(out[host].indexOf(e), 1);
-      }
-    }
-    // Keep the slot counts even: an overcrowded rank hands its lightest expert to an emptier rank.
+    const extra = [];
+    for (let e = 0; e < work.experts; e++) for (let n = copies[e]; n < count(e); n++) extra.push(e);
+    drop(out, extra, load, slots, work);
+    // Keep the slot counts even: an overcrowded rank hands its lightest expert to an emptier
+    // rank that does not have it yet.
     const widest = () => out.reduce((a, rank, r) => rank.length > out[a].length ? r : a, 0);
     const narrowest = () => out.reduce((a, rank, r) => rank.length < out[a].length ? r : a, 0);
     while (out[widest()].length > out[narrowest()].length + 1) {
       const from = widest();
       const to = narrowest();
-      const lightest = out[from].reduce((a, e, i) => load[e] / copies[e] < load[out[from][a]] / copies[out[from][a]] ? i : a, 0);
+      const movable = out[from].map((e, i) => i).filter(i => !out[to].includes(out[from][i]));
+      if (!movable.length) break;
+      const lightest = movable.reduce((a, i) => load[out[from][i]] / copies[out[from][i]] < load[out[from][a]] / copies[out[from][a]] ? i : a);
       out[to].push(out[from].splice(lightest, 1)[0]);
       moves++;
     }
-    for (let e = 0; e < work.experts; e++) {
-      while (count(e) < copies[e]) {
-        const loads = rankLoads(out, load, copies);
-        let best = -1;
-        for (let r = 0; r < work.ranks; r++) {
-          if (out[r].length >= slots) continue;
-          const here = out[r].includes(e);
-          if (best < 0 || here < out[best].includes(e) || here === out[best].includes(e) && loads[r] < loads[best]) best = r;
-        }
-        out[best].push(e);
-        moves++;
-      }
-    }
+    // Add the missing copies. A copy on a rank that already has the expert would share that
+    // rank's compute, so it is left out when no other rank has room.
+    const pending = [];
+    for (let e = 0; e < work.experts; e++) for (let n = count(e); n < copies[e]; n++) pending.push(e);
+    place(out, pending, load, slots).forEach((r, i) => {
+      if (r < 0) return;
+      out[r].push(pending[i]);
+      moves++;
+    });
+    copies = copyCounts(out, work);
     for (let round = 0; round < 64; round++) {
       const loads = rankLoads(out, load, copies);
       const peak = Math.max(...loads);
@@ -122,8 +188,9 @@
       const low = loads.indexOf(Math.min(...loads));
       const rest = Math.max(...loads.filter((_, r) => r !== high && r !== low));
       let best = null;
+      // A swap must not put a second copy of an expert on either rank.
       out[high].forEach((a, ai) => out[low].forEach((b, bi) => {
-        if (a === b) return;
+        if (a === b || out[high].includes(b) || out[low].includes(a)) return;
         const after = Math.max(rest, peak - load[a] / copies[a] + load[b] / copies[b],
           loads[low] - load[b] / copies[b] + load[a] / copies[a]);
         if (after < peak * (1 - gain) && (!best || after < best.after)) best = { ai, bi, after };
@@ -146,7 +213,8 @@
     const now = ++run.second;
     const current = work.steps[now - 1];
     let moves = 0;
-    if (run.moving) {
+    // A scheduled rebalance, or redundancy switched off while copies exist: dropping copies is free.
+    if (run.moving || !settings.redundant && run.placement.flat().length > work.experts) {
       const result = plan(run.placement, run.recent, settings.redundant, work);
       moves = result.moves;
       run.placement = result.placement;

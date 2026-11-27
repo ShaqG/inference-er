@@ -104,7 +104,7 @@ function renderReport(result, t) {
     const mine = pick(result);
     const base = pick(baseline);
     const gap = mine === null || base === null ? null : mine - base;
-    const change = gap === null ? '—' : gap === 0 ? format(0) : (gap > 0 ? '+' : '−') + format(Math.abs(gap));
+    const change = gap === null ? '—' : gap === 0 ? format(0) : (gap > 0 ? '+' : '-') + format(Math.abs(gap));
     const row = document.createElement('tr');
     const heading = document.createElement('th');
     heading.scope = 'row';

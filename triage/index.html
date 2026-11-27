@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1214">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%230c1214'/%3E%3Cpath%20d='M32%2014v36M14%2032h36'%20stroke='%23aaf5bf'%20stroke-width='8'%20stroke-linecap='round'/%3E%3C/svg%3E">
   <meta name="description" content="及时重平衡专家、用冗余专家分摊热门负载，在 60 秒内缓解 MoE 的专家负载倾斜。">
   <title>MoE 分诊台 | INFERENCE ER</title>
   <script src="../locale.js"></script>
@@ -65,7 +67,7 @@
         <button id="rebalance" class="secondary rebalance-button" type="button" data-text="rebalanceButton" disabled>⇄ 立即重平衡</button>
         <p id="pending" role="status"></p>
       </div>
-      <label class="control switch"><div><div class="control-title" data-text="redundant">冗余专家</div><p data-text="redundantHelp">每个 rank 多放一个专家位，权重显存增加 25%。重平衡时会把最热的专家复制到其他 rank，它的 token 由各副本均分。</p></div><input id="redundant" type="checkbox"></label>
+      <label class="control switch"><div><div class="control-title" data-text="redundant">冗余专家</div><p data-text="redundantHelp">每个 rank 多放一个专家位，权重显存增加 25%。重平衡时会把最热的专家复制到其他 rank，它的 token 由各副本均分；关掉后下一步就撤掉副本。</p></div><input id="redundant" type="checkbox"></label>
       <div class="hint"><b data-text="hintTitle">值班提示</b><p data-text="hint">第 15 秒起两个专家变热，第 39 秒起只剩一个超级热门的专家。重平衡只看最近 4 步，刚变热时要等它进入统计。挪动位置能分开两个热门专家，单个专家过热则要靠冗余专家。</p></div>
     </aside>
   </div>
