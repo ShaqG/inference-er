@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="用三个调度开关，在 60 秒内救回一个推理服务。">
-  <title>推理急诊室 | INFERENCE ER</title>
+  <meta name="description" content="Long prompts are flooding the service and short chats are timing out. You have 60 seconds to take over.">
+  <title>Inference ER | LLM Scheduling Game</title>
   <link rel="stylesheet" href="style.css">
   <script src="case.js" defer></script>
   <script src="sim.js" defer></script>
@@ -16,68 +16,68 @@
   <div class="shell top-inner">
     <span class="brand"><b>＋</b> INFERENCE ER</span>
     <nav class="cases" aria-label="Cases">
-      <a href="index.html" aria-current="page" data-text="nav01">CASE 01 · 调度</a>
-      <a href="triage/index.html" data-text="nav02">CASE 02 · 分诊台</a>
+      <a href="index.html" aria-current="page" data-text="nav01">CASE 01 · SCHEDULING</a>
+      <a href="triage/index.html" data-text="nav02">CASE 02 · TRIAGE</a>
     </nav>
     <div class="languages" role="group" aria-label="Language">
-      <button type="button" lang="zh-CN" data-language="zh" aria-pressed="true">简体中文</button>
-      <button type="button" lang="en" data-language="en" aria-pressed="false">English</button>
+      <button type="button" lang="zh-CN" data-language="zh" aria-pressed="false">简体中文</button>
+      <button type="button" lang="en" data-language="en" aria-pressed="true">English</button>
     </div>
   </div>
 </header>
 <main class="shell">
   <section class="hero">
     <div class="hero-copy">
-      <p class="eyebrow" id="case-label">CASE 01 / 长请求突袭</p>
-      <h1><span class="title-lead" data-text="titleLead">推理</span><span data-text="titleAccent">急诊室</span><b aria-hidden="true">+</b></h1>
-      <p id="case-intro">长 Prompt 正在涌入，短聊天开始超时。你有 60 秒接管服务，看能救回多少请求。</p>
-      <div class="actions"><button id="start" class="primary">▶ &nbsp; 接管服务</button><button id="reset" class="secondary" data-text="reset">↻ 重开同一局</button></div>
+      <p class="eyebrow" id="case-label">CASE 01 / LONG PROMPT SURGE</p>
+      <h1><span class="title-lead" data-text="titleLead">Inference </span><span data-text="titleAccent">ER</span><b aria-hidden="true">+</b></h1>
+      <p id="case-intro">Long prompts are flooding the service and short chats are timing out. You have 60 seconds to take over.</p>
+      <div class="actions"><button id="start" class="primary">▶ Take over</button><button id="reset" class="secondary" data-text="reset">↻ Replay this case</button></div>
     </div>
-    <div class="clock"><div class="clock-label" data-text="remaining">剩余时间</div><strong id="clock">01:00</strong><div class="progress"><div id="progress"></div></div><p id="phase">待命 · 开始后可实时调整策略</p></div>
+    <div class="clock"><div class="clock-label" data-text="remaining">Time remaining</div><strong id="clock">01:00</strong><div class="progress"><div id="progress"></div></div><p id="phase">Standby · Change policies live once you start</p></div>
   </section>
   <div class="layout">
     <section class="panel monitor" aria-labelledby="monitor-title">
-      <div class="section-head"><h2 id="monitor-title" data-text="monitor">服务监控</h2><span class="chip" id="state">待命</span></div>
+      <div class="section-head"><h2 id="monitor-title" data-text="monitor">Service monitor</h2><span class="chip" id="state">Standby</span></div>
       <div class="metrics">
-        <div><span data-text="done">已完成</span><strong id="done">0</strong></div>
-        <div><span data-text="timeout">已超时</span><strong id="timeout" class="danger">0</strong></div>
-        <div><span data-text="shortP95">短请求 TTFT P95</span><strong id="p95">—</strong></div>
-        <div><span data-text="rate">输出 token/s</span><strong id="rate">0.0</strong></div>
+        <div><span data-text="done">Completed</span><strong id="done">0</strong></div>
+        <div><span data-text="timeout">Timed out</span><strong id="timeout" class="danger">0</strong></div>
+        <div><span data-text="shortP95">Short TTFT P95</span><strong id="p95">—</strong></div>
+        <div><span data-text="rate">Output tokens/s</span><strong id="rate">0.0</strong></div>
       </div>
-      <div class="chart-head"><span data-text="backlog">积压请求</span><span id="pending">0 活跃 · 0 拒绝</span></div>
-      <svg id="chart" viewBox="0 0 600 155" preserveAspectRatio="none" role="img" aria-label="最近 60 秒活跃请求数">
+      <div class="chart-head"><span data-text="backlog">Backlog</span><span id="pending">0 active · 0 rejected</span></div>
+      <svg id="chart" viewBox="0 0 600 155" preserveAspectRatio="none" role="img" aria-label="Active requests per second in this run">
         <path class="grid" d="M0 15H600 M0 53H600 M0 91H600 M0 129H600 M0 15V129 M150 15V129 M300 15V129 M450 15V129 M599 15V129"/>
         <path id="area"/><polyline id="line"/>
       </svg>
       <div class="axis"><span>0s</span><span>15s</span><span>30s</span><span>45s</span><span>60s</span></div>
-      <div class="chart-head flow-title"><span data-text="active">在途请求</span><span data-text="recent">最近 12 条活跃请求</span></div>
-      <div id="queue" class="queue">接管后在这里查看请求处于 Prefill 还是 Decode。</div>
+      <div class="chart-head flow-title"><span data-text="active">In-flight requests</span><span data-text="recent">Last 12 active requests</span></div>
+      <div id="queue" class="queue">Take over to see requests move through prefill and decode.</div>
     </section>
     <aside class="panel controls" aria-labelledby="controls-title">
-      <div class="section-head"><h2 id="controls-title" data-text="controls">调度台</h2><span class="chip" data-text="live">实时生效</span></div>
-      <div class="control"><div class="control-title" data-text="batch">Decode 批大小</div><p data-text="batchHelp">大批次提高每秒算力，也允许更多请求同时生成。</p>
-        <fieldset><legend class="sr" data-text="batch">Decode 批大小</legend><label><input type="radio" name="batch" value="2"><span>2</span></label><label><input type="radio" name="batch" value="4" checked><span>4</span></label><label><input type="radio" name="batch" value="8"><span>8</span></label></fieldset>
+      <div class="section-head"><h2 id="controls-title" data-text="controls">Scheduling</h2><span class="chip" data-text="live">Applies live</span></div>
+      <div class="control"><div class="control-title" data-text="batch">Decode batch size</div><p data-text="batchHelp">In this simulation, larger batches increase the per-second budget and run more requests together.</p>
+        <fieldset><legend class="sr" data-text="batch">Decode batch size</legend><label><input type="radio" name="batch" value="2"><span>2</span></label><label><input type="radio" name="batch" value="4" checked><span>4</span></label><label><input type="radio" name="batch" value="8"><span>8</span></label></fieldset>
       </div>
-      <label class="control switch"><div><div class="control-title" data-text="reserve">短请求优先</div><p data-text="reserveHelp">短聊天在两个阶段优先调度，长请求可能等得更久。</p></div><input id="reserve" type="checkbox"></label>
-      <label class="control switch"><div><div class="control-title" data-text="limit">限制长请求</div><p data-text="limitHelp">已有 2 个长请求在途时，拒绝新的长请求。</p></div><input id="limit" type="checkbox"></label>
-      <div class="hint"><b data-text="hintTitle">值班提示</b><p id="hint">第 8 秒起长 Prompt 集中到达。盯住积压和超时，再决定是否牺牲部分长请求。</p></div>
+      <label class="control switch"><div><div class="control-title" data-text="reserve">Prioritize short requests</div><p data-text="reserveHelp">Short requests go first in both phases. Long requests may wait longer.</p></div><input id="reserve" type="checkbox"></label>
+      <label class="control switch"><div><div class="control-title" data-text="limit">Limit long requests</div><p data-text="limitHelp">Reject new long requests when two are already in flight.</p></div><input id="limit" type="checkbox"></label>
+      <div class="hint"><b data-text="hintTitle">On-call tip</b><p id="hint">The surge starts at second 8. Watch the backlog, timeouts, and rejections as you try different policies.</p></div>
     </aside>
   </div>
   <section id="report" class="panel report" hidden aria-labelledby="report-title">
-    <h2 id="report-title" data-text="report" tabindex="-1">本轮复盘</h2>
+    <h2 id="report-title" data-text="report" tabindex="-1">Debrief</h2>
     <p id="report-summary"></p>
-    <table><thead><tr><th scope="col" data-text="metric">指标</th><th scope="col" data-text="thisRun">本轮</th><th scope="col" data-text="baseline">默认策略</th><th scope="col" data-text="change">变化</th></tr></thead><tbody id="results"></tbody></table>
-    <p class="fine" data-text="reportNote">默认策略使用批大小 4，关闭优先和限流。TTFT P95 仅统计已输出首 token 的请求。</p>
+    <table><thead><tr><th scope="col" data-text="metric">Metric</th><th scope="col" data-text="thisRun">This run</th><th scope="col" data-text="baseline">Default</th><th scope="col" data-text="change">Change</th></tr></thead><tbody id="results"></tbody></table>
+    <p class="fine" data-text="reportNote">The default uses batch size 4 with prioritization and admission limits off. TTFT P95 includes requests that reached their first token.</p>
   </section>
   <footer>
     <div class="case-tools">
-      <button id="import-case" class="secondary" type="button" data-text="importCase">导入请求 JSON</button>
-      <button id="restore-case" class="secondary" type="button" data-text="restoreCase" hidden>恢复示例</button>
+      <button id="import-case" class="secondary" type="button" data-text="importCase">Import request JSON</button>
+      <button id="restore-case" class="secondary" type="button" data-text="restoreCase" hidden>Restore example</button>
       <input id="case-file" type="file" accept=".json,application/json" hidden>
-      <a href="https://github.com/ShaqG/inference-er" data-text="sourceLink">源代码</a>
+      <a href="https://github.com/ShaqG/inference-er" data-text="sourceLink">Source code</a>
       <span id="case-status" role="status"></span>
     </div>
-    <span id="source-note">合成请求 · 所有结果为模拟值</span>
+    <span id="source-note">Synthetic requests · All results are simulated</span>
   </footer>
 </main>
 </body>
