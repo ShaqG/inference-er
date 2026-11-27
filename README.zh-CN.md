@@ -2,7 +2,7 @@
 
 [English](README.md) · 简体中文
 
-你是 LLM 推理服务的值班工程师。三关，每关 60 秒。挑选先处理的请求，给 MoE 专家换位置，再决定 draft model 每轮写几个 token。
+你是 LLM 推理服务的值班工程师。四关，每关 60 秒。挑选先处理的请求，给 MoE 专家换位置，决定 draft model 每轮写几个 token，再定几张卡做 Prefill、几张卡做 Decode。
 
 **[在线试玩](https://shaqg.github.io/inference-er/)** · [直达投机解码关](https://shaqg.github.io/inference-er/spec/)
 
@@ -17,8 +17,9 @@
 | **01 · 调度** | 长 Prompt 突然涌入，怎么保住短聊天的响应时间，又给长请求留出算力？ | [试玩第一关](https://shaqg.github.io/inference-er/) |
 | **02 · MoE 分诊台** | 热门专家拖慢了整个 batch，什么时候该搬权重，什么时候该加副本？ | [试玩第二关](https://shaqg.github.io/inference-er/triage/) |
 | **03 · 投机代诊** | 一次 target 前向可以多生成几个 token。验证成本高到什么时候值得缩短草稿？ | [试玩第三关](https://shaqg.github.io/inference-er/spec/) |
+| **04 · PD 分离** | Prefill 和 Decode 抢同一批 GPU，每个 Prompt 都会拖慢所在卡的解码。几张卡只做 Prefill，几张只做 Decode？ | [试玩第四关](https://shaqg.github.io/inference-er/pd/) |
 
-每次重开都会回放同一批负载，复盘可以和默认策略比较。也可下载仓库，在浏览器离线打开[调度](index.html)、[MoE 分诊台](triage/index.html)或[投机代诊](spec/index.html)，无需安装或登录。
+每次重开都会回放同一批负载，复盘可以和默认策略比较。也可下载仓库，在浏览器离线打开[调度](index.html)、[MoE 分诊台](triage/index.html)、[投机代诊](spec/index.html)或[PD 分离](pd/index.html)，无需安装或登录。
 
 ## CASE 01 · 调度
 
@@ -82,4 +83,18 @@ Prefill 和 Decode 共用简化的算力预算，Decode 每步受批大小限制
 
 每个 token 是否匹配对每条请求都独立同分布，而真实的接受情况有突发性，也随请求和位置变化。这里只建模链式草稿，不建模 EAGLE、Medusa 这类树形草稿。注意力、Prefill 和草稿模型占用的显存没有计入。
 
-在本地运行 `node --test`，可验证回放格式和三个游戏的模拟行为。
+## CASE 04 · PD 分离
+
+1. 点击 **开始排班**。第 13 秒短对话涌入，第 31 秒开始长文档问答，第 46 秒是长输出的推理请求。
+2. 选择几张 GPU 只做 Prefill，从混部（默认）到 7 张。观察达标率、首 token 延迟、TPOT、Prefill 排队和每张卡的占用。
+3. 查看复盘，按阶段与默认策略对比。重开同一批请求，每次改动一项设置。
+
+### 模拟规则
+
+8 张 GPU 部署同一个模型。默认每张卡既做 Prefill 也做 Decode，且 Prefill 优先：Prompt 占掉一秒的多大比例，解码就只剩多少时间，这一秒生成的每个 token 都随之变慢。分离后，前面的卡只做 Prefill，后面的卡只做 Decode，改动从下一秒开始生效。请求按泊松分布每秒到达，Prompt 和输出长度均匀抽取，每次重开用的是同一批随机结果。Prefill 在 Prefill 卡上按先来先做处理，每个 Prompt token 用 0.08 ms，没做完的 Prompt 下一秒继续。解码在这一秒剩下的时间里一步步连续执行，一步耗时 hypot(14 ms, 0.16 ms × 每张解码卡的请求数)。Prompt 做完、且整个上下文放得进解码卡的 KV（每张 15 万 token）时，请求开始解码；解码卡变少时，最后放入的请求先暂停，等有空位再继续。首 token 在 1 s 内到达、输出 token 的平均间隔不超过 20 ms，即为达标；还没收到首 token 的请求按未达标计。
+
+成本模型按一个参考部署估算，不是实测值：32B 稠密模型，FP8 权重约 33 GB，KV cache 为 BF16、每个 token 256 KiB（64 层、8 个 KV head、head 大小 128），每张 H100 80GB 放一份副本。Prefill 每个 token 约 64 GFLOPs，按约 800 TFLOPS 的有效算力是 0.08 ms，即每张卡约 12,500 token/s。解码一步读权重约 14 ms（约 2.4 TB/s），批次里每条请求再增加约 0.16 ms 的计算。每张卡可用约 76 GB，去掉权重和几 GB 的其他开销后约剩 40 GB 放 KV，也就是约 15 万个 token。
+
+没有建模的部分：Prefill 卡到 Decode 卡的 KV 传输（5000 个 token 的 Prompt 约 1.3 GB，走 NVLink 是 10 ms 量级，而首 token 延迟有几百毫秒）、GPU 换角色时的迁移、分块 Prefill、注意力计算、前缀缓存，以及 KV 之外对批大小的限制。每秒到达数超过 30 时，用均值和方差相同的正态抽样代替泊松。默认策略下有 11% 的请求达标；跟着流量调整分工可以让全部请求达标。
+
+在本地运行 `node --test`，可验证回放格式和四个游戏的模拟行为。

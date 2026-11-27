@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Prefill 和 Decode 抢同一批 GPU，长 Prompt 一来，解码就卡。你有 60 秒决定几张卡做 Prefill、几张做 Decode。">
+  <title>PD 分离 | INFERENCE ER</title>
+  <script src="../locale.js"></script>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="pd.css">
+  <script src="case.js" defer></script>
+  <script src="sim.js" defer></script>
+  <script src="strings.js" defer></script>
+  <script src="game.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="shell top-inner">
+    <span class="brand"><b>＋</b> INFERENCE ER</span>
+    <nav class="cases" aria-label="Cases">
+      <a href="../index.html" data-text="nav01">CASE 01 · 调度</a>
+      <a href="../triage/index.html" data-text="nav02">CASE 02 · 分诊台</a>
+      <a href="../spec/index.html" data-text="nav03">CASE 03 · 代诊</a>
+      <a href="index.html" aria-current="page" data-text="nav04">CASE 04 · PD 分离</a>
+    </nav>
+    <div class="languages" role="group" aria-label="Language">
+      <button type="button" lang="zh-CN" data-language="zh" aria-pressed="true" disabled>简体中文</button>
+      <button type="button" lang="en" data-language="en" aria-pressed="false" disabled>English</button>
+    </div>
+  </div>
+</header>
+<main class="shell">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow" data-text="case04">CASE 04 / 检查科和留观室，各占几张卡</p>
+      <h1><span class="title-lead" data-text="titleLead">PD </span><span data-text="titleAccent">分离</span><b aria-hidden="true">+</b></h1>
+      <p data-text="intro">Prefill 和 Decode 抢同一批 GPU，长 Prompt 一来，解码就卡。你有 60 秒决定几张卡做 Prefill、几张做 Decode。</p>
+      <div class="actions"><button id="start" class="primary">▶ &nbsp; 开始排班</button><button id="reset" class="secondary" data-text="reset">↻ 重开同一局</button></div>
+    </div>
+    <div class="clock"><div class="clock-label" data-text="remaining">剩余时间</div><strong id="clock">01:00</strong><div class="progress"><div id="progress"></div></div><p id="phase">待命 · 开始后可实时调整策略</p></div>
+  </section>
+  <div class="layout">
+    <section class="panel monitor" aria-labelledby="monitor-title">
+      <div class="section-head"><h2 id="monitor-title" data-text="monitor">服务监控</h2><span class="chip" id="state">待命</span></div>
+      <div class="metrics">
+        <div><span data-text="good">达标率</span><strong id="good">—</strong></div>
+        <div><span data-text="ttft">首 token 延迟</span><strong id="ttft">—</strong></div>
+        <div><span data-text="tpot">TPOT</span><strong id="tpot">—</strong></div>
+        <div><span data-text="queued">Prefill 排队</span><strong id="queued">—</strong></div>
+      </div>
+      <p class="fine goal" data-text="slo">达标线：首 token ≤ 1 s，TPOT ≤ 20 ms</p>
+      <div class="chart-head"><span data-text="ttftChart">每秒首 token 延迟</span><span data-text="ttftNote">虚线是 1 s 达标线</span></div>
+      <svg id="ttft-chart" class="latency" viewBox="0 0 600 155" preserveAspectRatio="none" role="img" aria-label="最近 60 秒里每秒首 token 的平均等待时间，单位毫秒，超过 2 秒的部分截掉">
+        <path class="grid" d="M0 15H600 M0 53H600 M0 91H600 M0 129H600 M0 15V129 M150 15V129 M300 15V129 M450 15V129 M599 15V129"/>
+        <line class="target" x1="0" x2="600" y1="72" y2="72"/>
+        <polyline id="ttft-line"/>
+      </svg>
+      <div class="axis"><span>0s</span><span>15s</span><span>30s</span><span>45s</span><span>60s</span></div>
+      <div class="chart-head flow-title"><span data-text="tpotChart">每秒 TPOT</span><span data-text="tpotNote">虚线是 20 ms 达标线</span></div>
+      <svg id="tpot-chart" class="latency" viewBox="0 0 600 155" preserveAspectRatio="none" role="img" aria-label="最近 60 秒里每秒输出 token 的平均间隔，单位毫秒，超过 40 毫秒的部分截掉">
+        <path class="grid" d="M0 15H600 M0 53H600 M0 91H600 M0 129H600 M0 15V129 M150 15V129 M300 15V129 M450 15V129 M599 15V129"/>
+        <line class="target" x1="0" x2="600" y1="72" y2="72"/>
+        <polyline id="tpot-line"/>
+      </svg>
+      <div class="axis"><span>0s</span><span>15s</span><span>30s</span><span>45s</span><span>60s</span></div>
+      <div class="chart-head flow-title"><span data-text="gpus">GPU 分工</span><span data-text="gpusNote">本秒每张卡的 Prefill 占用、KV 占用和解码并发</span></div>
+      <div id="gpus" class="gpus" aria-label="8 张 GPU 本秒的分工和占用"></div>
+      <p id="flow" class="fine"></p>
+    </section>
+    <aside class="panel controls" aria-labelledby="controls-title">
+      <div class="section-head"><h2 id="controls-title" data-text="controls">调度台</h2><span class="chip" data-text="live">实时生效</span></div>
+      <div class="control"><div class="control-title" data-text="roles">GPU 分工</div><p data-text="rolesHelp">混部时每张卡既做 Prefill 也做 Decode，Prompt 会拖慢同一张卡上的解码。分离后，前面的卡只做 Prefill，后面的卡只做 Decode。Prefill 卡少了，首 token 延迟上升；Decode 卡少了，TPOT 变差，KV 也可能放不下。</p>
+        <fieldset class="splits"><legend class="sr" data-text="roles">GPU 分工</legend><label><input type="radio" name="prefill" value="0" checked><span data-text="mixed">混部</span></label><label><input type="radio" name="prefill" value="1"><span>1P·7D</span></label><label><input type="radio" name="prefill" value="2"><span>2P·6D</span></label><label><input type="radio" name="prefill" value="3"><span>3P·5D</span></label><label><input type="radio" name="prefill" value="4"><span>4P·4D</span></label><label><input type="radio" name="prefill" value="5"><span>5P·3D</span></label><label><input type="radio" name="prefill" value="6"><span>6P·2D</span></label><label><input type="radio" name="prefill" value="7"><span>7P·1D</span></label></fieldset>
+      </div>
+      <div class="hint"><b data-text="hintTitle">值班提示</b><p data-text="hint">第 13 秒短对话涌入，第 31 秒长文档问答，第 46 秒是长输出的推理请求。混部时 Prompt 会拖慢同一张卡上的解码；分离后 Prefill 排队会推高首 token 延迟，解码卡太少则 TPOT 变差、KV 放不下。</p></div>
+    </aside>
+  </div>
+  <section id="report" class="panel report" hidden aria-labelledby="report-title">
+    <h2 id="report-title" data-text="report" tabindex="-1">本轮复盘</h2>
+    <p id="report-summary"></p>
+    <table><thead><tr><th scope="col" data-text="metric">指标</th><th scope="col" data-text="thisRun">本轮</th><th scope="col" data-text="baseline">默认策略</th><th scope="col" data-text="change">变化</th></tr></thead><tbody id="results"></tbody></table>
+    <h3 data-text="byPhase">分阶段</h3>
+    <table><thead><tr><th scope="col" data-text="phase">阶段</th><th scope="col" data-text="mainSplit">主要分工</th><th scope="col" data-text="good">达标率</th><th scope="col" data-text="reportTtft">TTFT P95</th><th scope="col" data-text="reportTpot">TPOT</th></tr></thead><tbody id="phases"></tbody></table>
+    <p class="fine" data-text="reportNote">默认策略是 8 张卡混部。首 token 在 1 s 内到达、且相邻输出 token 的间隔不超过 20 ms 的请求算达标，还没收到首 token 的请求按未达标计。TTFT P95 只统计已输出首 token 的请求。TPOT 是每条请求相邻输出 token 的平均间隔，按 token 数加权。</p>
+  </section>
+  <footer>
+    <div class="case-tools"><a href="https://github.com/ShaqG/inference-er/tree/main/pd" data-text="sourceLink">源代码</a></div>
+    <span id="source-note">合成请求 · 所有结果为模拟值</span>
+  </footer>
+</main>
+</body>
+</html>

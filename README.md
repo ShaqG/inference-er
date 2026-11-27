@@ -2,7 +2,7 @@
 
 English · [简体中文](README.zh-CN.md)
 
-You're on call for an LLM serving stack. In three 60-second browser games, decide which requests to prioritize, where to place MoE experts, and how far a draft model should speculate.
+You're on call for an LLM serving stack. In four 60-second browser games, decide which requests to prioritize, where to place MoE experts, how far a draft model should speculate, and how many GPUs to give to prefill or decode.
 
 **[Play online](https://shaqg.github.io/inference-er/)** · [Jump to speculative decoding](https://shaqg.github.io/inference-er/spec/)
 
@@ -17,8 +17,9 @@ In the demo, the same draft length goes from helping code completion to slowing 
 | **01 · Scheduling** | Long prompts are piling up. Can you protect short chats while keeping enough capacity for long requests? | [Play case 01](https://shaqg.github.io/inference-er/) |
 | **02 · MoE Triage** | A few experts are slowing down all ranks. When should you move weights, and when should you add a replica? | [Play case 02](https://shaqg.github.io/inference-er/triage/) |
 | **03 · Second Opinion** | Drafting can produce more tokens per target pass. When does the cost of verification make a shorter draft worthwhile? | [Play case 03](https://shaqg.github.io/inference-er/spec/) |
+| **04 · P/D Split** | Prefill and decode share the same GPUs, and every prompt stalls the decoding on its card. How many GPUs should prefill, and how many decode? | [Play case 04](https://shaqg.github.io/inference-er/pd/) |
 
-Each case replays the same workload and compares your run against a default policy. To play offline, download the repository and open [Scheduling](index.html), [MoE Triage](triage/index.html), or [Second Opinion](spec/index.html) in a browser. No installation or account is required.
+Each case replays the same workload and compares your run against a default policy. To play offline, download the repository and open [Scheduling](index.html), [MoE Triage](triage/index.html), [Second Opinion](spec/index.html), or [P/D Split](pd/index.html) in a browser. No installation or account is required.
 
 ## CASE 01 · Scheduling
 
@@ -82,4 +83,18 @@ The cost model is sized from a reference deployment, not measured: a 70B dense t
 
 Token matches are independent and identical for every request, while real acceptance is bursty and varies by request and by position. Only chain drafts are modeled, not tree drafts such as EAGLE or Medusa. Attention, prefill and the draft model's memory are left out.
 
-Run the workload and simulation checks for all three cases locally with `node --test`.
+## CASE 04 · P/D Split
+
+1. Click **Start shift**. Short chats rush in at second 13, document Q&A starts at second 31, and long-form reasoning arrives at second 46.
+2. Pick how many GPUs only prefill, from mixed (the default) to 7. Watch the on-time share, first-token latency, TPOT, the prefill queue, and how full each card is.
+3. Compare the debrief with the default policy, phase by phase. Replay the same requests and change one setting at a time.
+
+### How the simulation works
+
+Eight GPUs serve one model. By default every GPU prefills and decodes, and prefill goes first: whatever share of a second the prompts take is lost to decoding, so every token generated in that second is slower. After a split the first GPUs only prefill and the rest only decode, and the change applies from the next second. Requests arrive per second from a Poisson distribution, with prompt and output lengths drawn uniformly, and every replay reuses the same draws. Prefill is first come, first served across the prefill GPUs at 0.08 ms per prompt token, and a prompt that is not finished continues in the next second. Decode steps run back to back for the rest of the second, and a step takes hypot(14 ms, 0.16 ms × requests per decode GPU). A request starts decoding once its prompt is done and its whole context fits in the KV room of the decode GPUs, 150,000 tokens each. When the decode pool shrinks, the requests admitted last pause until room frees up. A request is on time when its first token arrives within 1 s and its output tokens come at most 20 ms apart on average. A request still waiting for its first token counts as late.
+
+The cost model is sized from a reference deployment, not measured: a 32B dense model with FP8 weights (about 33 GB) and a BF16 KV cache of 256 KiB per token (64 layers, 8 KV heads, head size 128), one copy per H100 80GB. Prefill takes 64 GFLOPs per token at about 800 TFLOPS effective, which is 0.08 ms, or about 12,500 tokens per second per GPU. Reading the weights for a decode step takes about 14 ms at about 2.4 TB/s, and each request in the batch adds about 0.16 ms of compute. Of the about 76 GB usable per GPU, about 40 GB is left for KV after the weights and a few GB for everything else, room for about 150,000 tokens.
+
+Left out: the KV transfer from a prefill GPU to a decode GPU (a 5,000-token prompt is about 1.3 GB, on the order of 10 ms over NVLink against a first-token latency of hundreds of milliseconds), the migration when a GPU changes role, chunked prefill, attention cost, prefix caching, and any limit on batch size other than KV room. Above 30 arrivals per second, the draw is normal with the same mean and variance instead of Poisson. With the default, 11% of requests are on time. Changing the split with the traffic keeps all of them on time.
+
+Run the workload and simulation checks for all four cases locally with `node --test`.
